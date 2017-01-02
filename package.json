@@ -1,0 +1,19 @@
+{
+  "name": "abbir",
+  "version": "1.0.0",
+  "description": "Smart photo screen based on Raspberry Pi",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lindehoff/abbir.git"
+  },
+  "author": "Lindehoff",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lindehoff/abbir/issues"
+  },
+  "homepage": "https://github.com/lindehoff/abbir#readme"
+}
