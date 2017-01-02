@@ -10,6 +10,10 @@
     "type": "git",
     "url": "git+https://github.com/lindehoff/abbir.git"
   },
+  "devDependencies": {
+    "jscs": "^3.0.7",
+    "jshint": "^2.9.3"
+  },
   "author": "Lindehoff",
   "license": "ISC",
   "bugs": {
