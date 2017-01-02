@@ -24,6 +24,7 @@
     "screenName": "Kitchen",
     "imageSize": 1280,
     "imagePath": "images/Kitchen/",
+    "incommingPath": "incomming",
     "acceptedUsers": [
       {
         "name": "Name",
