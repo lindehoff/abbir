@@ -1,0 +1,36 @@
+{
+  "mailListener": {
+    "host": "mailcluster.loopia.se",
+    "port": 993,
+    "tls": true,
+    "connTimeout": 10000,
+    "authTimeout": 5000,
+    "tlsOptions": { "rejectUnauthorized": false },
+    "mailbox": "INBOX",
+    "searchFilter": ["UNSEEN"],
+    "markSeen": false,
+    "fetchUnreadOnStart": true,
+    "mailParserOptions": {"streamAttachments": false},
+    "attachments": false,
+    "username": "user@mail.se",
+    "password": "password"
+  },
+  "winston": {
+    "logfilePath": "abbir.log",
+    "fileLogLevel": "info",
+    "consoleLogLevel": "info"
+  },
+  "abbir": {
+    "screenName": "Kitchen",
+    "imageSize": 1280,
+    "imagePath": "images/Kitchen/",
+    "acceptedUsers": [
+      {
+        "name": "Name",
+        "emailAddress": [
+          "email@domain.com"
+        ]
+      }
+    ]
+  }
+}
