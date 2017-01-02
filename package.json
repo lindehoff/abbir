@@ -19,5 +19,9 @@
   "bugs": {
     "url": "https://github.com/lindehoff/abbir/issues"
   },
-  "homepage": "https://github.com/lindehoff/abbir#readme"
+  "homepage": "https://github.com/lindehoff/abbir#readme",
+  "dependencies": {
+    "mail-listener2": "^0.3.1",
+    "winston": "^2.3.0"
+  }
 }
