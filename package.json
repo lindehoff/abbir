@@ -21,8 +21,12 @@
   },
   "homepage": "https://github.com/lindehoff/abbir#readme",
   "dependencies": {
+    "chokidar": "^1.6.1",
+    "lodash": "^4.17.4",
     "mail-listener2": "^0.3.1",
     "mkdirp": "^0.5.1",
+    "moment-timezone": "^0.5.11",
+    "s3": "^4.4.0",
     "winston": "^2.3.0"
   }
 }
