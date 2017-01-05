@@ -6,10 +6,12 @@
  */
 
 'use strict';
-//const fs = require('fs');
+const fs = require('fs');
 //const mkdirp = require('mkdirp');
 //const async = require('async');
 const s3 = require('s3');
+const gm = require('gm');
+const moment = require('moment-timezone');
 
 function ProcessIncomming(config, logger) {
   const client = s3.createClient({
@@ -27,7 +29,20 @@ function ProcessIncomming(config, logger) {
   };
 
   this.processDir = function(path) {
+    fs.readdir(path, function( err, files ) {
+      if( err ) {
+        console.error( "Could not list the directory.", err );
+      }
 
+      files.forEach( function( file, index ) {
+        //console.log(file)
+        getImageDate(path + file, function(err, date) {
+          if(!err) {
+            console.log(date);
+          }
+        });
+      });
+    });
   }
 
   let uploadToS3 = function(path) {
@@ -54,6 +69,31 @@ function ProcessIncomming(config, logger) {
         config.abbir.screenName,
         path);
     });
+  };
+
+  let getImageDate = function(file, callback) {
+    let date;
+    try {
+      gm(file)
+      .identify(function (err, data) {
+        if (err) {
+          logger.warn('[%s] Unable to read metadata from image %s, Error: ', config.abbir.screenName, file.name, err);
+          callback(err);
+        } else {
+          if (data.hasOwnProperty('Profile-EXIF') && (data['Profile-EXIF'].hasOwnProperty('Date Time Original') || data['Profile-EXIF'].hasOwnProperty('Date Time'))) {
+            date = data['Profile-EXIF']['Date Time Original'] || data['Profile-EXIF']['Date Time'];
+            let tmp = date.split(' ');
+            tmp[0] = tmp[0].split(':').join('-');
+            date = moment.tz(tmp[0] + 'T' + tmp[1], 'Europe/Stockholm');
+            callback(null, date);
+          } else {
+            callback(new Error('No EXIF info found'));
+          }
+        }
+      });
+    } catch(err) {
+      callback(err);
+    }
   };
 }
 
