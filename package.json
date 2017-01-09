@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/lindehoff/abbir#readme",
   "dependencies": {
+    "aws-sdk": "^2.7.21",
     "chokidar": "^1.6.1",
     "gm": "^1.23.0",
     "lodash": "^4.17.4",

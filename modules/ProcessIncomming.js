@@ -8,19 +8,17 @@
 'use strict';
 const fs = require('fs');
 //const mkdirp = require('mkdirp');
-//const async = require('async');
-const s3 = require('s3');
+const async = require('async');
+//const s3 = require('s3');
+const AWS = require('aws-sdk');
 const gm = require('gm');
 const moment = require('moment-timezone');
+const util = require('util');
 
 function ProcessIncomming(config, logger) {
-  const client = s3.createClient({
-    maxAsyncS3: 5,     // this is the default
-    s3RetryCount: 3,    // this is the default
-    s3RetryDelay: 1000, // this is the default
-    multipartUploadThreshold: 20971520, // this is the default (20 MB)
-    multipartUploadSize: 15728640, // this is the default (15 MB)
-    s3Options: config.amazon.s3Options
+  AWS.config.update(config.amazon.s3Options);
+  const s3 = new AWS.S3({
+    params: {Bucket: config.amazon.imageBucket}
   });
 
   this.stop = function() {
@@ -29,56 +27,79 @@ function ProcessIncomming(config, logger) {
   };
 
   this.processDir = function(path) {
-    fs.readdir(path, function( err, files ) {
-      if( err ) {
-        console.error( "Could not list the directory.", err );
+    fs.readdir(path, function(err, files) {
+      if (err) {
+        logger.error('[%s] Could not list the directory "%s", error: ',
+          config.abbir.screenName,
+          path,
+          err);
+        return;
       }
+      let albumInfo = files.find(fileName => fileName === 'info.json');
+      if (albumInfo) {
+        albumInfo = JSON.parse(fs.readFileSync(path + albumInfo, 'utf8'));
+      }
+      async.each(files, function(file, callback) {
+        let filePath = path + file;
+        fs.readFile(filePath, function (err, data) {
+          //fs.unlink(file.path, function (err) {
+          // if (err) {
+          //  console.error(err);
+          // }
+          // console.log('Temp File Delete');
+          //});
 
-      files.forEach( function( file, index ) {
-        //console.log(file)
-        getImageDate(path + file, function(err, date) {
-          if(!err) {
-            console.log(date);
-          }
+          getImageDate(data, function(err, date) {
+            if(!err) {
+              let newPath = util.format('%s%s/%s/%s/%s/',
+                config.abbir.imagePath,
+                albumInfo.user,
+                date.format('YYYY'),
+                date.format('MM'),
+                albumInfo.title);
+              let newFileName = util.format('%s [%s] %s.jpg',
+                date.format('YYYY-MM-DDThh.mm.ss'),
+                albumInfo.user,
+                albumInfo.title);
+              backup(data, newPath + newFileName, function(err, data) {
+                if (err) {
+                  console.log('There was an error uploading your photo: ', err.message);
+
+                  callback();
+                  return;
+                }
+                console.log('Successfully uploaded photo.');
+
+                callback();
+              });
+            } else {
+              callback();
+            }
+          });
         });
+      }, function(err) {
+        console.log('Done');
+
       });
     });
-  }
+  };
 
-  let uploadToS3 = function(path) {
-    const params = {
-      localDir: path,
-      deleteRemoved: false,
-      s3Params: {
-        Bucket: config.amazon.imageBucket,
-        Prefix: config.abbir.owner + '/'
-      },
-    };
-    logger.info('[%s] Uploading %s to Amazon S3',
-      config.abbir.screenName,
-      path);
-    const uploader = client.uploadDir(params);
-    uploader.on('error', function(err) {
-      logger.error('[%s] Unable to uploading %s to Amazon S3, error: ',
-        config.abbir.screenName,
-        path,
-        err);
-    });
-    uploader.on('end', function() {
-      logger.info('[%s] Successfully upload %s to Amazon S3',
-        config.abbir.screenName,
-        path);
-    });
+  let backup = function(fileBuffer, path, callback) {
+    s3.upload({
+      Key: path,
+      Body: fileBuffer
+    }, callback);
   };
 
   let getImageDate = function(file, callback) {
     let date;
     try {
       gm(file)
-      .identify(function (err, data) {
+      .identify(function(err, data) {
         if (err) {
           logger.warn('[%s] Unable to read metadata from image %s, Error: ', config.abbir.screenName, file.name, err);
           callback(err);
+          return;
         } else {
           if (data.hasOwnProperty('Profile-EXIF') && (data['Profile-EXIF'].hasOwnProperty('Date Time Original') || data['Profile-EXIF'].hasOwnProperty('Date Time'))) {
             date = data['Profile-EXIF']['Date Time Original'] || data['Profile-EXIF']['Date Time'];
@@ -88,11 +109,13 @@ function ProcessIncomming(config, logger) {
             callback(null, date);
           } else {
             callback(new Error('No EXIF info found'));
+            return;
           }
         }
       });
     } catch(err) {
       callback(err);
+      return;
     }
   };
 }
