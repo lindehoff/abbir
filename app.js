@@ -3,6 +3,7 @@
 const winston = require('winston');
 const EmailClient = require('./modules/EmailClient');
 const ProcessIncomming = require('./modules/ProcessIncomming');
+const FBIController = require('./modules/FBIController');
 const config = require('./config');
 
 const logger = new (winston.Logger)({
@@ -24,6 +25,7 @@ let exit = function() {
 
 const emailClient = new EmailClient(config, logger);
 const processIncomming = new ProcessIncomming(config, logger);
+let fbiController;
 
 emailClient.start();
 emailClient.on('newFiles', function(path) {
@@ -31,7 +33,8 @@ emailClient.on('newFiles', function(path) {
 });
 
 processIncomming.on('newImages', function(newImages) {
-  console.log(newImages);
+  fbiController = new FBIController(config, logger, newImages);
+  console.log(fbiController.images);
 });
 
 process.on('SIGINT', exit);
