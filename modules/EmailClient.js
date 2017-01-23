@@ -12,8 +12,11 @@ const mkdirp = require('mkdirp');
 const async = require('async');
 const util = require('util');
 const _ = require('lodash');
+const EventEmitter = require('events').EventEmitter;
 
 function EmailClient(config, logger) {
+  EventEmitter.call(this);
+  const self = this;
   const mailListener = new MailListener(config.mailListener);
   mailListener.on('server:connected', function() {
     logger.info('[%s] imapConnected', config.abbir.screenName);
@@ -39,7 +42,7 @@ function EmailClient(config, logger) {
         config.abbir.screenName,
         mail.from[0].address);
       if (mail.hasOwnProperty('attachments')) {
-        let path = config.abbir.incommingPath + '/images/' + user.name;
+        let path = config.abbir.incommingPath + '/images/' + user.name + '/';
         let title = util.format('%s from %s', mail.date.toLocaleDateString('sv-SE'), user.name);
         if (mail.subject) {
           title = mail.subject;
@@ -49,7 +52,7 @@ function EmailClient(config, logger) {
             title = lines[0].trim();
           }
         }
-        path += '/' + title;
+        path += title + '/';
         let info = {
           date: mail.date,
           from: mail.from[0].address,
@@ -77,7 +80,7 @@ function EmailClient(config, logger) {
                   config.abbir.screenName,
                   mail.messageId,
                   attachment.generatedFileName);
-                let filePath =  util.format('%s/%s.jpg',
+                let filePath =  util.format('%s%s.jpg',
                   path,
                   attachment.generatedFileName);
                 fs.writeFile(filePath, attachment.content, function(err) {
@@ -116,8 +119,9 @@ function EmailClient(config, logger) {
                   mail.attachments.length,
                   mail.messageId);
               }
-              if(imageCount > 0) {
+              if (imageCount > 0) {
                 fs.writeFile(path + '/info.json', JSON.stringify(info, null, 2) , 'utf-8');
+                self.emit('newFiles', path);
               } else {
                 //todo: remove path
               }
@@ -146,5 +150,6 @@ function EmailClient(config, logger) {
 
 }
 
+util.inherits(EmailClient, EventEmitter);
 // Exports
 module.exports = EmailClient;

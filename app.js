@@ -18,15 +18,22 @@ const logger = new (winston.Logger)({
 });
 
 let exit = function() {
-  //emailClient.stop();
+  emailClient.stop();
   processIncomming.stop();
 };
 
 const emailClient = new EmailClient(config, logger);
 const processIncomming = new ProcessIncomming(config, logger);
 
-processIncomming.processDir('images/incomming/images/Jacob/Julen 2001/');
+//processIncomming.processDir('images/incomming/images/Jacob/Julen 2001/');
 //processIncomming.getfile('Lindehoff/Jacob/Julen 2001/Julen 2001 01 (Jacob).jpg');
-//emailClient.start();
+emailClient.start();
+emailClient.on('newFiles', function(path) {
+  processIncomming.processDir(path);
+});
+
+processIncomming.on('newImages', function(newImages) {
+  console.log(newImages);
+});
 
 process.on('SIGINT', exit);
