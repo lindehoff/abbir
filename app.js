@@ -5,6 +5,7 @@ const EmailClient = require('./modules/EmailClient');
 const ProcessIncomming = require('./modules/ProcessIncomming');
 const FBIController = require('./modules/FBIController');
 const config = require('./config');
+require('shelljs/global');
 
 const logger = new (winston.Logger)({
   transports: [
@@ -18,23 +19,24 @@ const logger = new (winston.Logger)({
   ]
 });
 
-let exit = function() {
+const exit = function() {
   emailClient.stop();
   processIncomming.stop();
+  fbiController.stop();
 };
 
 const emailClient = new EmailClient(config, logger);
 const processIncomming = new ProcessIncomming(config, logger);
-let fbiController;
-
+let images = find(config.abbir.imagePath).filter(function(file) { return file.match(/\.jpg$/); });
+const fbiController = new FBIController(config, logger, images);
+fbiController.start();
 emailClient.start();
 emailClient.on('newFiles', function(path) {
   processIncomming.processDir(path);
 });
 
 processIncomming.on('newImages', function(newImages) {
-  fbiController = new FBIController(config, logger, newImages);
-  console.log(fbiController.images);
+  fbiController.showNewImages(newImages);
 });
 
 process.on('SIGINT', exit);

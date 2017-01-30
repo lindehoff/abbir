@@ -9,6 +9,7 @@
 const EventEmitter = require('events').EventEmitter;
 const fs = require('fs');
 const util = require('util');
+require('shelljs/global');
 
 function FBIController(config, logger, images) {
   EventEmitter.call(this);
@@ -41,6 +42,18 @@ function FBIController(config, logger, images) {
   this.images = images;
 }
 
+FBIController.prototype.start = function(images) {
+  exec('sudo fbi -d /dev/fb1 -T 2 -t 10 --noverbose --comments -blend 500 '+"'" + (images || this.images).join("' '") + "'");
+}
+
+FBIController.prototype.stop = function() {
+  exec('sudo killall -9 fbi');
+}
+
+FBIController.prototype.showNewImages = function(images) {
+  this.stop();
+  this.start(images);
+}
 util.inherits(FBIController, EventEmitter);
 // Exports
 module.exports = FBIController;
