@@ -12,7 +12,8 @@
   },
   "devDependencies": {
     "jscs": "^3.0.7",
-    "jshint": "^2.9.3"
+    "jshint": "^2.9.3",
+    "nodemon": "^1.11.0"
   },
   "author": "Lindehoff",
   "license": "ISC",
