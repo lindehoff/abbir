@@ -50,10 +50,16 @@ irRemote.on('buttonPress', function(button) {
     fbiController.nextImage();
   }else if(button === "BTN_LEFT") {
     fbiController.prevImage();
+  }else if(button === "BTN_UP") {
+    fbiController.zoomIn();
+  }else if(button === "BTN_DOWN") {
+    fbiController.zoomOut();
   }else if(button === "BTN_SETUP") {
     fbiController.toggleVerbose();
-  }else if(button === "BTN_0") {
+  }else if(button === "BTN_STOP") {
     fbiController.toggleInfo();
+  }else {
+    fbiController.sendKey(button);
   }
 });
 process.on('SIGINT', exit);

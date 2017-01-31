@@ -13,7 +13,7 @@ const uinput = require('uinput');
 
 require('shelljs/global');
 
-let sendKeyToTerminal = function (key) {
+let sendKeyToTerminal = function (key, cb) {
   var setup_options = {
     EV_KEY : [ key ]
   }
@@ -41,6 +41,9 @@ let sendKeyToTerminal = function (key) {
       uinput.key_event(stream, key, function (err) {
         if (err) {
           throw(err);
+        }
+        if(cb) {
+          cb();
         }
       });
     });
@@ -80,7 +83,7 @@ function FBIController(config, logger, images) {
 }
 
 FBIController.prototype.start = function(images) {
-  exec('sudo fbi -d /dev/fb1 -T 2 -t 10 --noverbose --comments -blend 500 '+"'" + (images || this.images).join("' '") + "'");
+  exec('sudo fbi -d /dev/fb0 -T 2 -t 10 --noverbose --comments -blend 500 '+"'" + (images || this.images).join("' '") + "'");
 }
 
 FBIController.prototype.stop = function() {
@@ -106,6 +109,22 @@ FBIController.prototype.nextImage = function() {
 
 FBIController.prototype.prevImage = function() {
   sendKeyToTerminal(uinput.KEY_K);
+}
+
+FBIController.prototype.zoomIn = function() {
+  sendKeyToTerminal(uinput.KEY_KPPLUS);
+}
+
+FBIController.prototype.zoomOut = function() {
+  sendKeyToTerminal(uinput.KEY_KPMINUS);
+}
+
+FBIController.prototype.sendKey = function(button) {
+  if(button === 'BTN_ENTER'){
+    sendKeyToTerminal(uinput.KEY_G);
+  } else {
+    sendKeyToTerminal(uinput[button.replace('BTN', 'KEY')]);
+  }
 }
 
 util.inherits(FBIController, EventEmitter);
