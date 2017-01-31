@@ -4,6 +4,7 @@ const winston = require('winston');
 const EmailClient = require('./modules/EmailClient');
 const ProcessIncomming = require('./modules/ProcessIncomming');
 const FBIController = require('./modules/FBIController');
+const IrRemote = require('./modules/IrRemote');
 const config = require('./config');
 require('shelljs/global');
 
@@ -29,8 +30,8 @@ const emailClient = new EmailClient(config, logger);
 const processIncomming = new ProcessIncomming(config, logger);
 let images = find(config.abbir.imagePath).filter(function(file) { return file.match(/\.jpg$/); });
 const fbiController = new FBIController(config, logger, images);
-fbiController.start();
-emailClient.start();
+//fbiController.start();
+//emailClient.start();
 emailClient.on('newFiles', function(path) {
   processIncomming.processDir(path);
 });
@@ -39,4 +40,9 @@ processIncomming.on('newImages', function(newImages) {
   fbiController.showNewImages(newImages);
 });
 
+const irRemote = new IrRemote(config, logger);
+
+irRemote.on('buttonPress', function(button) {
+  logger.info('Button %s pressed', button);
+});
 process.on('SIGINT', exit);
