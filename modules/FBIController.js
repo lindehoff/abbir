@@ -47,8 +47,8 @@ let sendKeyToTerminal = function (key, cb) {
       });
     });
   });
-
 }
+
 let slideShow = false;
 let resetSlideShowTimer = function (controller) {
   if(slideShow){
@@ -190,21 +190,25 @@ FBIController.prototype.zoomIn = function() {
 FBIController.prototype.zoomOut = function() {
   numberString = '';
   sendKeyToTerminal(uinput.KEY_KPMINUS);
+  this.goToImage(50);
 }
 
 FBIController.prototype.sendKey = function(button) {
   let that = this;
   if(button === 'BTN_ENTER'){
     sendKeyToTerminal(uinput.KEY_G, function () {
+      resetSlideShowTimer(that);
       let number = parseInt(numberString, 10)
       if (!isNaN(number) && number <= that.images.length && number > 0) {
         currentImage = number - 1;
       }
       numberString = '';
     });
-  } else {
+  } else if(button === 'BTN_BACK') {
+    this.goToImage(Math.floor(Math.random() * this.images.length) + 1  )
+  }else {
+    resetSlideShowTimer(that);
     let num = parseInt(button.replace('BTN_', ''), 10);
-    console.log(num)
     if(!isNaN(num)){
       numberString = util.format('%s%s', numberString, num)
     }
@@ -212,6 +216,23 @@ FBIController.prototype.sendKey = function(button) {
   }
 }
 
+FBIController.prototype.goToImage = function(index) {
+  let keys = [];
+  let that = this;
+  resetSlideShowTimer(that);
+  for (let i = 0; i < index.toString().length; i++){
+    setTimeout(function () {
+      sendKeyToTerminal(uinput['KEY_' + index.toString()[i]]);
+    }, i*100);
+  }
+  setTimeout(function () {
+    sendKeyToTerminal(uinput.KEY_G, function () {
+      currentImage = index - 1;
+      resetSlideShowTimer(that);
+    });
+  }, index.toString().length * 100);
+
+}
 util.inherits(FBIController, EventEmitter);
 // Exports
 module.exports = FBIController;

@@ -64,4 +64,5 @@ irRemote.on('buttonPress', function(button) {
     fbiController.sendKey(button);
   }
 });
+
 process.on('SIGINT', exit);
