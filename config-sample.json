@@ -20,6 +20,12 @@
     "fileLogLevel": "info",
     "consoleLogLevel": "info"
   },
+  "fbi": {
+    "device": "/dev/fb0",
+    "blend": 500,
+    "virtualConsole": 2,
+    "extra": "--noverbose --readahead --norandom"
+  },
   "abbir": {
     "screenName": "Kitchen",
     "imageSize": 1280,

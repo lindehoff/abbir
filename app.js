@@ -30,7 +30,7 @@ const emailClient = new EmailClient(config, logger);
 const processIncomming = new ProcessIncomming(config, logger);
 let images = find(config.abbir.imagePath).filter(function(file) { return file.match(/\.jpg$/); });
 
-const fbiController = new FBIController(config, logger, images);
+const fbiController = new FBIController(config, logger, images, 10000);
 fbiController.start();
 //emailClient.start();
 emailClient.on('newFiles', function(path) {
@@ -58,6 +58,8 @@ irRemote.on('buttonPress', function(button) {
     fbiController.toggleVerbose();
   }else if(button === "BTN_STOP") {
     fbiController.toggleInfo();
+  }else if(button === "BTN_PAUSE") {
+    fbiController.toggleSlideShow();
   }else {
     fbiController.sendKey(button);
   }
