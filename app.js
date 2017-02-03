@@ -58,7 +58,7 @@ irRemote.on('buttonPress', function(button) {
     fbiController.toggleVerbose();
   }else if(button === "BTN_STOP") {
     fbiController.toggleInfo();
-  }else if(button === "BTN_PAUSE") {
+  }else if(button === "BTN_PLAYPAUSE") {
     fbiController.toggleSlideShow();
   }else {
     fbiController.sendKey(button);

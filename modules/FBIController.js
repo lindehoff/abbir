@@ -208,11 +208,12 @@ FBIController.prototype.sendKey = function(button) {
     this.goToImage(Math.floor(Math.random() * this.images.length) + 1  )
   }else {
     resetSlideShowTimer(that);
-    let num = parseInt(button.replace('BTN_', ''), 10);
+    let num = parseInt(button.replace('BTN_KP', ''), 10);
     if(!isNaN(num)){
       numberString = util.format('%s%s', numberString, num)
     }
-    sendKeyToTerminal(uinput[button.replace('BTN', 'KEY')]);
+    console.log()
+    sendKeyToTerminal(uinput[button.replace('BTN_KP', 'KEY_')]);
   }
 }
 
