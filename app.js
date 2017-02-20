@@ -33,7 +33,7 @@ let images = find(config.abbir.imagePath).filter(function(file) { return file.ma
 
 const fbiController = new FBIController(config, logger, images, 10000);
 fbiController.start();
-//emailClient.start();
+emailClient.start();
 emailClient.on('newFiles', function(path) {
   processIncomming.processDir(path);
 });
