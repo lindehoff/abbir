@@ -60,13 +60,15 @@ function ProcessIncomming(config, logger) {
                   date.format('YYYY-MM-DDThh.mm.ss'),
                   albumInfo.user,
                   albumInfo.title);
-                backup(data, newPath + newFileName, function (err) {
+                backup(data, newPath + newFileName, config.amazon.backup,
+                  function(err) {
                   if (err) {
-                    console.log('There was an error uploading your photo: ', err.message);
+                    console.log('There was an error uploading your photo: ',
+                      err.message);
                     callback();
                     return;
                   }
-                  mkdirp(newPath, function (err) {
+                  mkdirp(newPath, function(err) {
                     if (err) {
                       logger.warn('[%s] Unable to create path %s, Error: ',
                         config.abbir.screenName,
@@ -80,7 +82,7 @@ function ProcessIncomming(config, logger) {
                         albumInfo.user,
                         albumInfo.from))
                       .resize(config.abbir.imageSize, config.abbir.imageSize)
-                      .write(newFilePath, function (err) {
+                      .write(newFilePath, function(err) {
                         if (err) {
                           logger.warn('[%s] Unable to save/resize image %s from email [%s], Error: ',
                             config.abbir.screenName,
@@ -92,7 +94,7 @@ function ProcessIncomming(config, logger) {
                             config.abbir.screenName,
                             newFileName,
                             albumInfo.messageId);
-                          exec('exiftran -ai \'' + newFilePath + '\'', function () {
+                          exec('exiftran -ai \'' + newFilePath + '\'', function() {
                             logger.info('[%s] Updating timestamp in image %s to %s',
                               config.abbir.screenName,
                               newFilePath,
@@ -155,11 +157,15 @@ function ProcessIncomming(config, logger) {
     });
   };
 
-  let backup = function(fileBuffer, path, callback) {
-    s3.upload({
-      Key: path,
-      Body: fileBuffer
-    }, callback);
+  let backup = function(fileBuffer, path, enabled, callback) {
+    if (enabled) {
+      s3.upload({
+        Key: path,
+        Body: fileBuffer
+      }, callback);
+    } else {
+      callback();
+    }
   };
 
   let getImageDate = function(file, callback) {
@@ -184,7 +190,7 @@ function ProcessIncomming(config, logger) {
           }
         }
       });
-    } catch(err) {
+    } catch (err) {
       callback(err);
       return;
     }
