@@ -5,6 +5,7 @@ const EmailClient = require('./modules/EmailClient');
 const ProcessIncomming = require('./modules/ProcessIncomming');
 const FBIController = require('./modules/FBIController');
 const IrRemote = require('./modules/IrRemote');
+const Button = require('./modules/Button');
 const config = require('./config');
 require('shelljs/global');
 
@@ -65,4 +66,11 @@ irRemote.on('buttonPress', function(button) {
   }
 });
 
+const button = new Button(config, logger, 4, false);
+button.on(button.ButtonEvents.READY, function() {
+  console.log('Ready');
+});
+button.on(button.ButtonEvents.PRESS, function() {
+  console.log('Press');
+});
 process.on('SIGINT', exit);
