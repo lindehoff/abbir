@@ -6,6 +6,7 @@ const ProcessIncomming = require('./modules/ProcessIncomming');
 const FBIController = require('./modules/FBIController');
 const IrRemote = require('./modules/IrRemote');
 const Button = require('./modules/Button');
+const Led = require('./modules/Led');
 const config = require('./config');
 require('shelljs/global');
 
@@ -33,7 +34,7 @@ let images = find(config.abbir.imagePath).filter(function(file) { return file.ma
 
 const fbiController = new FBIController(config, logger, images, 10000);
 fbiController.start();
-emailClient.start();
+//emailClient.start();
 emailClient.on('newFiles', function(path) {
   processIncomming.processDir(path);
 });
@@ -73,4 +74,7 @@ button.on(button.ButtonEvents.READY, function() {
 button.on(button.ButtonEvents.PRESS, function() {
   console.log('Press');
 });
+
+
+
 process.on('SIGINT', exit);
