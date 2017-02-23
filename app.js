@@ -22,50 +22,49 @@ const logger = new (winston.Logger)({
   ]
 });
 
-const exit = function() {
-  emailClient.stop();
-  processIncomming.stop();
-  fbiController.stop();
-};
-
-const emailClient = new EmailClient(config, logger);
-const processIncomming = new ProcessIncomming(config, logger);
+/*
 let images = find(config.abbir.imagePath).filter(function(file) { return file.match(/\.jpg$/); });
 
 const fbiController = new FBIController(config, logger, images, 10000);
 fbiController.start();
-//emailClient.start();
+
+const emailClient = new EmailClient(config, logger);
+emailClient.start();
 emailClient.on('newFiles', function(path) {
   processIncomming.processDir(path);
 });
 
+const processIncomming = new ProcessIncomming(config, logger);
 processIncomming.on('newImages', function(newImages) {
   fbiController.showNewImages(newImages);
 });
-
 const irRemote = new IrRemote(config, logger);
-
 irRemote.on('buttonPress', function(button) {
   logger.info('Button %s pressed', button);
 
-  if(button === "BTN_RIGHT") {
+  if (button === 'BTN_RIGHT') {
     fbiController.nextImage();
-  }else if(button === "BTN_LEFT") {
+  }else if (button === 'BTN_LEFT') {
     fbiController.prevImage();
-  }else if(button === "BTN_UP") {
+  }else if (button === 'BTN_UP') {
     fbiController.zoomIn();
-  }else if(button === "BTN_DOWN") {
+  }else if (button === 'BTN_DOWN') {
     fbiController.zoomOut();
-  }else if(button === "BTN_SETUP") {
+  }else if (button === 'BTN_SETUP') {
     fbiController.toggleVerbose();
-  }else if(button === "BTN_STOP") {
+  }else if (button === 'BTN_STOP') {
     fbiController.toggleInfo();
-  }else if(button === "BTN_PLAYPAUSE") {
+  }else if (button === 'BTN_PLAYPAUSE') {
     fbiController.toggleSlideShow();
   }else {
     fbiController.sendKey(button);
   }
 });
+
+
+const led = new Led(logger, 14);
+led.startPulse(1000);
+*/
 
 const button = new Button(config, logger, 4, false);
 button.on(button.ButtonEvents.READY, function() {
@@ -76,5 +75,14 @@ button.on(button.ButtonEvents.PRESS, function() {
 });
 
 
+const exit = function() {
+  //emailClient.stop();
+  //irRemote.stop();
+  button.close();
+  //processIncomming.stop();
+  //fbiController.stop();
+  //led.stop();
+};
 
-process.on('SIGINT', exit);
+const cleanup = require('./modules/cleanup').Cleanup(exit);
+process.stdin.resume();
