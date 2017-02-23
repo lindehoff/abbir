@@ -12,17 +12,17 @@ const util = require('util');
 const uinput = require('uinput');
 const exec = require('child_process').exec;
 
-let sendKeyToTerminal = function (key, cb) {
-  var setup_options = {
-    EV_KEY : [ key ]
-  }
+let sendKeyToTerminal = function(key, cb) {
+  var setupOptions = {
+    EV_KEY: [key]
+  };
 
-  uinput.setup(setup_options, function(err, stream) {
+  uinput.setup(setupOptions, function(err, stream) {
     if (err) {
       throw(err);
     }
 
-    var create_options = {
+    var createOptions = {
       name: 'myuinput',
       id: {
         bustype: uinput.BUS_VIRTUAL,
@@ -32,33 +32,33 @@ let sendKeyToTerminal = function (key, cb) {
       }
     };
 
-    uinput.create(stream, create_options, function (err) {
+    uinput.create(stream, createOptions, function(err) {
       if (err) {
         throw(err);
       }
 
-      uinput.key_event(stream, key, function (err) {
+      uinput.key_event(stream, key, function(err) {
         if (err) {
           throw(err);
         }
-        if(cb) {
+        if (cb) {
           cb();
         }
       });
     });
   });
-}
+};
 
 let slideShow = false;
-let resetSlideShowTimer = function (controller) {
-  if(slideShow){
+let resetSlideShowTimer = function(controller) {
+  if (slideShow) {
     clearInterval(slideShow);
     slideShow = null;
-    slideShow = setInterval(function () {
+    slideShow = setInterval(function() {
       controller.nextImage();
     }, controller.slideShowInterval);
   }
-}
+};
 let currentImage = 0;
 let logger;
 let config;
@@ -111,13 +111,29 @@ function FBIController(Config, Logger, images, slideShowInterval = 60000) {
 FBIController.prototype.start = function(images) {
   let fbiCommand = util.format('sudo fbi --device %s -T %d -blend %d %s \'%s\'', config.fbi.device, config.fbi.virtualConsole, config.fbi.blend, config.fbi.extra, (images || this.images).join("' '"));
   logger.info('Starting fbi with: %s %s', fbiCommand);
-  exec(fbiCommand);
+  exec(fbiCommand, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`exec error: ${error}`);
+      return;
+    }
+    console.log(`stdout: ${stdout}`);
+    console.log(`stderr: ${stderr}`);
+  });
   this.toggleSlideShow(this.slideShowInterval, false);
 }
 
 FBIController.prototype.stop = function() {
-  exec('sudo killall -9 fbi');
-}
+  logger.warn('[%s] Stoping fbi controller',
+    config.abbir.screenName);
+  exec('sudo killall -9 fbi', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`exec error: ${error}`);
+      return;
+    }
+    console.log(`stdout: ${stdout}`);
+    console.log(`stderr: ${stderr}`);
+  });
+};
 
 FBIController.prototype.showNewImages = function(images) {
   this.stop();
