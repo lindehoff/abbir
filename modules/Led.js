@@ -40,30 +40,45 @@ function Led(logger, gpioPin) {
   const pin = gpioPin;
   let pulse = false;
   let fadeInterval;
+  Object.defineProperties(this, {
+    'pulsing': {
+      'get': function() {
+        return pulse;
+      }
+    }
+  });
   const setPin = function(value) {
-    logger.info('[LED %d] Setting pin to %d', pin, value);
+    logger.debug('[LED %d] Setting pin to %d', pin, value);
     writeToPiBlaster(util.format('%d=%d', pin, value), function(err) {
       if (err) {
         logger.error('[LED %d] Unable to set pin to  %d, error: ',
           pin, value, err);
         return;
       }
-      logger.info('[LED %d] Pin set to %d', pin, value);
+      logger.debug('[LED %d] Pin set to %d', pin, value);
     });
   };
   this.setBrightness = function(brightness) {
+    if (this.pulsing) {
+      this.stopPulse();
+    }
     setPin(pin, brightness);
   };
   this.turnOn = function() {
-    logger.info('[LED %d] Turn on', gpioPin);
+    if (this.pulsing) {
+      this.stopPulse();
+    }
     setPin(1);
   };
   this.turnOff = function() {
+    if (this.pulsing) {
+      this.stopPulse();
+    }
     setPin(0);
   };
   this.fade = function(from, to, step, time, callback) {
     let curr = from;
-    logger.info('[LED %d] Starting to fade for %d', gpioPin, time);
+    logger.debug('[LED %d] Starting to fade for %d', gpioPin, time);
     fadeInterval = setInterval(function() {
       if ((from < to && curr <= to) || (from > to && curr >= to)) {
         writeToPiBlaster(util.format('%d=%d', pin, curr), function(err) {
@@ -79,53 +94,53 @@ function Led(logger, gpioPin) {
           }
         });
       } else {
-        logger.info('[LED %d] fading done', gpioPin);
+        logger.debug('[LED %d] fading done', gpioPin);
         clearInterval(fadeInterval);
         callback();
       }
     }, time / 100);
   };
-  this.fadeUp = function(time, step = 0.01, callback) {
+  this.fadeUp = function(time, step = 0.01, callback = () => {}) {
     this.fade(0.0, 1.0, step, time, callback);
   };
-  this.fadeDown = function(time, step = 0.01, callback) {
+  this.fadeDown = function(time, step = 0.01, callback = () => {}) {
     this.fade(1.0, 0.0, step, time, callback);
   };
   this.startPulse = function(speed) {
     pulse = true;
     let self = this;
-    logger.info('[LED %d] Starting pulse', gpioPin);
+    logger.debug('[LED %d] Starting pulse', gpioPin);
     self.fadeUp(speed / 2, 0.01, function(err) {
       if (err) {
-        logger.info('[LED %d] Pulse error: ', gpioPin, err);
+        logger.error('[LED %d] Pulse error: ', gpioPin, err);
         pulse = false;
         return;
       }
       self.fadeDown(speed / 2, 0.01, function(err) {
         if (err) {
-          logger.info('[LED %d] Pulse error: ', gpioPin, err);
+          logger.error('[LED %d] Pulse error: ', gpioPin, err);
           pulse = false;
           return;
         }
         if (pulse) {
           setTimeout(function() {
             self.startPulse(speed);
-          }, 0)
+          }, 0);
         }
       });
     });
   };
   this.stopPulse = function() {
-    if (pulse) {
+    if (this.pulsing) {
       pulse = false;
       clearInterval(fadeInterval);
     }
   };
   this.close = function() {
-    if (pulse) {
-      pulse = false;
-      clearInterval(fadeInterval);
+    if (this.pulsing) {
+      this.stopPulse();
     }
+    this.turnOff();
     logger.info('[LED %d] Releasing pin', pin);
     writeToPiBlaster(util.format('release %d', pin), function(err) {
       if (err) {
