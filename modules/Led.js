@@ -38,7 +38,7 @@ function writeToPiBlaster(cmd, callback) {
 function Led(logger, gpioPin) {
   logger.info('[LED %d] Initializing LED on GPIO %d', gpioPin, gpioPin);
   const pin = gpioPin;
-  let pulseInterval;
+  let pulse = false;
   let fadeInterval;
   const setPin = function(value) {
     logger.info('[LED %d] Setting pin to %d', pin, value);
@@ -92,37 +92,40 @@ function Led(logger, gpioPin) {
     this.fade(1.0, 0.0, step, time, callback);
   };
   this.startPulse = function(speed) {
+    pulse = true;
     let self = this;
     logger.info('[LED %d] Starting pulse', gpioPin);
-    pulseInterval = setInterval(function() {
-      self.fadeUp(speed / 2, 0.01, function(err) {
+    self.fadeUp(speed / 2, 0.01, function(err) {
+      if (err) {
+        logger.info('[LED %d] Pulse error: ', gpioPin, err);
+        pulse = false;
+        return;
+      }
+      self.fadeDown(speed / 2, 0.01, function(err) {
         if (err) {
           logger.info('[LED %d] Pulse error: ', gpioPin, err);
-          clearInterval(pulseInterval);
-          pulseInterval = null;
+          pulse = false;
           return;
         }
-        if (pulseInterval) {
-          self.fadeDown(speed / 2, 0.01, function(err) {
-            if (err) {
-              logger.info('[LED %d] Pulse error: ', gpioPin, err);
-              clearInterval(pulseInterval);
-              pulseInterval = null;
-              return;
-            }
-          });
+        if (pulse) {
+          setTimeout(function() {
+            self.startPulse(speed);
+          }, 0)
         }
       });
-      //TODO: fix
-    }, speed + 500);
+    });
   };
   this.stopPulse = function() {
-    if (pulseInterval) {
-      clearInterval(pulseInterval);
-      pulseInterval = null;
+    if (pulse) {
+      pulse = false;
+      clearInterval(fadeInterval);
     }
   };
   this.close = function() {
+    if (pulse) {
+      pulse = false;
+      clearInterval(fadeInterval);
+    }
     logger.info('[LED %d] Releasing pin', pin);
     writeToPiBlaster(util.format('release %d', pin), function(err) {
       if (err) {

@@ -16,14 +16,8 @@ echo 'device_tree_overlay=overlays/button4-overlay.dtb' | sudo tee --append /boo
 ```
 
 ## pi-blaster
+Install pi-blaster, setup PWM for pin 14 and auto startup.
 ```bash
-sudo apt-get install debhelper dh-autoreconf dh-systemd dpkg-dev init-system-helpers autoconf -y
-git clone https://github.com/sarfata/pi-blaster.git
-cd pi-blaster
-dpkg-buildpackage -us -uc -i && sudo dpkg -i ../pi-blaster*.deb
-cd ..
-rm -rf pi-blaster
-
 sudo apt-get update
 sudo apt-get install autoconf -y
 git clone https://github.com/sarfata/pi-blaster.git
@@ -34,4 +28,6 @@ make
 sudo make install
 cd ..
 rm -rf pi-blaster
+sudo sed -i 's/DAEMON_OPTS=".*"/DAEMON_OPTS="-g 14"/' /etc/default/pi-blaster
+sudo systemctl enable pi-blaster -g 14
 ```
