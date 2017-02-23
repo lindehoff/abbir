@@ -7,8 +7,15 @@
 
 'use strict';
 const EventEmitter = require('events').EventEmitter;
-const GpioButton = require('gpio-button');
 const util = require('util');
+const fs = require('fs');
+const glob = require('glob');
+
+const EVENT_FILE_PREFIX = '/dev/input/by-path/platform-*';
+const EVENT_FILE_SUFFIX = '*-event';
+const EVENT_DATA_SIZE = 32;
+const EVENT_TYPE_INDEX = 12;
+
 const ButtonEvents = {
   READY: 0,
   LONG_PRESS: 1,
@@ -45,7 +52,8 @@ const ButtonEvents = {
 };
 
 function Button(config,
-  logger, gpioPin,
+  logger,
+  gpioPin,
   nc = true,
   dubblePressTimeoutTime = 300,
   longPressTime = 1200,
@@ -53,10 +61,21 @@ function Button(config,
   EventEmitter.call(this);
   const self = this;
   logger.info('[Button %d] Initializing button ', gpioPin);
-  const button = new GpioButton('button' + gpioPin);
-  this._pressed = button.pressed;
-  this._released = button.released;
-  this._held;
+  var eventFilePattern;
+
+  if (!(this instanceof Button)) {
+    return new Button(config,
+      logger,
+      gpioPin,
+      nc,
+      dubblePressTimeoutTime,
+      longPressTime,
+      resetPressTime
+    );
+  }
+
+  this._pressed = false;
+  this._held = false;
   Object.defineProperties(this, {
     'ButtonEvents': {
       'get': function() {
@@ -71,6 +90,7 @@ function Button(config,
   let longPress = false;
   let resetPress = false;
   let singlePressTimeout;
+  let readStream;
   let buttonEmit = (buttonEvent) => {
     logger.info('[Button %d] Button event "%s"',
       gpioPin,
@@ -78,48 +98,81 @@ function Button(config,
     );
     self.emit(buttonEvent);
   };
-  button.on((nc) ? 'press' : 'release', function() {
-    pressInterval = setInterval(function() {
-      if (!self._held && pressedTime > dubblePressTimeoutTime) {
-        buttonEmit(ButtonEvents.HELD_PRESS);
-        self._held = true;
-      }
-      pressedTime += pressIntervalTime;
-      if (pressedTime > longPressTime && !longPress) {
-        buttonEmit(1);
-        longPress = true;
-      } else if (pressedTime > resetPressTime) {
-        buttonEmit(2);
-        resetPress = true;
-        clearInterval(pressInterval);
-        pressInterval = null;
-      }
-    }, pressIntervalTime);
-  });
-  button.on((nc) ? 'release' : 'press', function() {
-    self._held = false;
-    let lastRelease = new Date() - lastedRelease;
-    if (lastRelease < dubblePressTimeoutTime &&
-      !(longPress || resetPress)) {
-      buttonEmit(3);
-      clearTimeout(singlePressTimeout);
-    } else if (lastRelease >= dubblePressTimeoutTime  &&
-       !(longPress || resetPress)) {
-      singlePressTimeout = setTimeout(function() {
-        buttonEmit(4);
-      }, dubblePressTimeoutTime);
-    }
-    clearInterval(pressInterval);
-    longPress = false;
-    resetPress = false;
-    pressInterval = null;
-    pressedTime = 0;
-    lastedRelease = new Date();
-  });
+  eventFilePattern = EVENT_FILE_PREFIX + 'button' + gpioPin + EVENT_FILE_SUFFIX;
+  glob(eventFilePattern, null, function(err, matches) {
+    var data = new Buffer(0);
 
-  button.on('ready', function() {
-    buttonEmit(0);
+    if (err) {
+      return self.emit('error', err);
+    }
+
+    if (matches.length === 0) {
+      return self.emit('error',
+        new Error('Event file \'' + eventFilePattern + '\' not found'));
+    }
+
+    if (matches.length > 1) {
+      return self.emit('error',
+        new Error('Multiple event files \'' + eventFilePattern + '\' found'));
+    }
+
+    readStream = fs.createReadStream(matches[0]);
+    readStream.on('close', error => console.log('Stream closed'));
+    readStream.on('data', function(buf) {
+      data = Buffer.concat([data, buf]);
+      while (data.length >= EVENT_DATA_SIZE) {
+        if (data[EVENT_TYPE_INDEX] === (nc) ? 0 : 1) {
+          self._held = false;
+          let lastRelease = new Date() - lastedRelease;
+          if (lastRelease < dubblePressTimeoutTime &&
+            !(longPress || resetPress)) {
+            buttonEmit(ButtonEvents.DOUBLE_PRESS);
+            clearTimeout(singlePressTimeout);
+          } else if (lastRelease >= dubblePressTimeoutTime  &&
+             !(longPress || resetPress)) {
+            singlePressTimeout = setTimeout(function() {
+              buttonEmit(ButtonEvents.PRESS);
+            }, dubblePressTimeoutTime);
+          }
+          clearInterval(pressInterval);
+          longPress = false;
+          resetPress = false;
+          pressInterval = null;
+          pressedTime = 0;
+          lastedRelease = new Date();
+        } else if (data[EVENT_TYPE_INDEX] === (nc) ? 1 : 0) {
+          pressInterval = setInterval(function() {
+            if (!self._held && pressedTime > dubblePressTimeoutTime) {
+              buttonEmit(ButtonEvents.HELD_PRESS);
+              self._held = true;
+            }
+            pressedTime += pressIntervalTime;
+            if (pressedTime > longPressTime && !longPress) {
+              buttonEmit(ButtonEvents.LONG_PRESS);
+              longPress = true;
+            } else if (pressedTime > resetPressTime) {
+              buttonEmit(ButtonEvents.RESET_PRESS);
+              resetPress = true;
+              clearInterval(pressInterval);
+              pressInterval = null;
+            }
+          }, pressIntervalTime);
+        }
+        /* else if (data[EVENT_TYPE_INDEX] === 2) {
+          self._held = true;
+          self.emit('hold');
+        }*/
+
+        data = data.slice(EVENT_DATA_SIZE);
+      }
+
+    });
+    buttonEmit(ButtonEvents.READY);
   });
+  this.close = function() {
+    //TODO: fix this it does not work
+    readStream.destroy();
+  };
 }
 
 Button.prototype.pressed = function() {
