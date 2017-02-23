@@ -136,7 +136,7 @@ function Led(logger, gpioPin) {
       clearInterval(fadeInterval);
     }
   };
-  this.close = function() {
+  this.stop = function() {
     if (this.pulsing) {
       this.stopPulse();
     }
