@@ -62,7 +62,7 @@ irRemote.on('buttonPress', function(button) {
 });
 
 const led = new Led(logger, 14);
-led.startPulse(1000);
+led.startPulse(5000);
 
 const button = new Button(config, logger, 4);
 button.on(button.ButtonEvents.READY, function() {

@@ -145,11 +145,13 @@ function Led(logger, gpioPin) {
       if (err) {
         resolve(util.format('[LED %d] Unable to turn of led, Error: ',
           pin, err));
+        return;
       }
       writeToPiBlaster(util.format('release %d', pin), function(err) {
         if (err) {
           resolve(util.format('[LED %d] Unable to release pin, Error: ',
             pin, err));
+          return;
         }
         logger.info('[LED %d] Pin %d released', pin, pin);
         resolve('success');

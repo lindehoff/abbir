@@ -123,12 +123,17 @@ FBIController.prototype.start = function(images) {
 FBIController.prototype.close = () => new Promise((resolve, reject) => {
   logger.warn('[%s] Stoping fbi controller',
     config.abbir.screenName);
-  exec('sudo killall -9 fbi', (error, stdout, stderr) => {
-    if (error) {
-      resolve(`error: ${error}`);
-      return;
-    }
+  sendKeyToTerminal(uinput.KEY_Q, function() {
     resolve('success');
+    /*
+    exec('sudo killall -9 fbi', (error, stdout, stderr) => {
+      if (error) {
+        resolve(`error: ${error}`);
+        return;
+      }
+      resolve('success');
+    });
+    */
   });
 });
 
