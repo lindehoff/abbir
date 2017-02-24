@@ -10,9 +10,9 @@ echo 'KERNEL=="uinput",GROUP="uinput",MODE:="0660"' | sudo tee  /etc/udev/rules.
 ```bash
 sudo apt-get update
 sudo apt-get install device-tree-compiler -y
-dtc -@ -I dts -O dtb -o button4-overlay.dtb button4-overlay.dts
-sudo cp button4-overlay.dtb /boot/overlays
-echo 'device_tree_overlay=overlays/button4-overlay.dtb' | sudo tee --append /boot/config.txt > /dev/null
+dtc -@ -I dts -O dtb -o setup/gpio-button4-overlay.dtb setup/gpio-button4-overlay.dts
+sudo mv setup/gpio-button4-overlay.dtb /boot/overlays
+echo 'device_tree_overlay=overlays/gpio-button4-overlay.dtb' | sudo tee --append /boot/config.txt > /dev/null
 ```
 
 ## pi-blaster
