@@ -6,14 +6,29 @@
  */
 
 'use strict';
-function noOp() {};
-
-exports.Cleanup = function Cleanup(callback) {
-
-  // attach user callback to the process event emitter
-  // if no callback, it will still exit gracefully on Ctrl-C
-  callback = callback || noOp;
-  process.on('cleanup', callback);
+exports.Cleanup = function Cleanup(cleanUpCloses) {
+  let cleanUpDone = false;
+  process.on('cleanup', () => {
+    if (!cleanUpDone) {
+      if (Array.isArray(cleanUpCloses)) {
+        let cleanUpPromises = cleanUpCloses.map(cleanUpClose => cleanUpClose());
+        Promise.all(cleanUpPromises)
+        .then(values => {
+          let err = false;
+          values.forEach(value => {
+            if (value !== 'success') {
+              console.log(value);
+              err = true;
+            }
+          });
+          process.exit((err) ? 1 : 0);
+        });
+      } else {
+        process.exit(0);
+      }
+      cleanUpDone = true;
+    }
+  });
 
   // do app specific cleaning before exiting
   process.on('exit', function() {
@@ -22,8 +37,8 @@ exports.Cleanup = function Cleanup(callback) {
 
   // catch ctrl+c event and exit normally
   process.on('SIGINT', function() {
-    console.log('Ctrl-C...');
-    process.exit(2);
+    console.log('trl-C...');
+    process.emit('cleanup');
   });
 
   //catch uncaught exceptions, trace, then exit normally

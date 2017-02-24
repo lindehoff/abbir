@@ -24,12 +24,12 @@
   "dependencies": {
     "aws-sdk": "^2.7.21",
     "gm": "^1.23.0",
-    "gpio-button": "^0.2.0",
     "lirc_node": "0.0.4",
     "lodash": "^4.17.4",
     "mail-listener2": "^0.3.1",
     "mkdirp": "^0.5.1",
     "moment-timezone": "^0.5.11",
+    "onoff": "^1.1.2",
     "uinput": "^1.0.0",
     "winston": "^2.3.0"
   }

@@ -144,9 +144,10 @@ function EmailClient(config, logger) {
     mailListener.start();
   };
 
-  this.stop = function() {
+  this.close = () => new Promise((resolve, reject) => {
     mailListener.stop();
-  };
+    resolve('success');
+  });
 
 }
 

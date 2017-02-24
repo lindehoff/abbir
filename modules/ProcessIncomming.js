@@ -25,10 +25,11 @@ function ProcessIncomming(config, logger) {
     params: {Bucket: config.amazon.imageBucket}
   });
 
-  this.stop = function() {
+  this.close = () => new Promise((resolve, reject) => {
     logger.warn('[%s] Stoped processing incomming files',
       config.abbir.screenName);
-  };
+    resolve('success');
+  });
 
   this.processDir = function(path) {
     fs.readdir(path, function(err, files) {

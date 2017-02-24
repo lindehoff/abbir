@@ -165,10 +165,11 @@ function Button(config,
     }
   }.bind(this));
   setTimeout(() => buttonEmit(ButtonEvents.READY), 0);
-  this.close = function() {
+  this.close = () => new Promise((resolve, reject) => {
     logger.info('[Button %d] Releasing button ', gpioPin);
     button.unexport();
-  };
+    resolve('success');
+  });
 }
 
 util.inherits(Button, EventEmitter);

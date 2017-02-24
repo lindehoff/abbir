@@ -22,10 +22,10 @@ const logger = new (winston.Logger)({
   ]
 });
 
-/*
 let images = find(config.abbir.imagePath).filter(function(file) { return file.match(/\.jpg$/); });
 
-const fbiController = new FBIController(config, logger, images, 10000);
+const fbiController = new FBIController(config,
+  logger, images, 10000);
 fbiController.start();
 
 const emailClient = new EmailClient(config, logger);
@@ -61,28 +61,24 @@ irRemote.on('buttonPress', function(button) {
   }
 });
 
-
 const led = new Led(logger, 14);
 led.startPulse(1000);
-*/
 
-const button = new Button(config, logger, 4, false);
+const button = new Button(config, logger, 4);
 button.on(button.ButtonEvents.READY, function() {
   console.log('Ready');
 });
-button.on(button.ButtonEvents.PRESS, function() {
+button.on(button.ButtonEvents.SINGLE_RELEASE, function() {
   console.log('Press');
 });
 
-
-const exit = function() {
-  //emailClient.stop();
-  //irRemote.stop();
-  button.close();
-  //processIncomming.stop();
-  //fbiController.stop();
-  //led.stop();
-};
+const exit = new Array(
+  led.close,
+  button.close,
+  irRemote.close,
+  emailClient.close,
+  processIncomming.close,
+  fbiController.close);
 
 const cleanup = require('./modules/cleanup').Cleanup(exit);
 process.stdin.resume();

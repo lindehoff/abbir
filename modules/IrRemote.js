@@ -19,7 +19,8 @@ function IrRemote(config, logger) {
     Object.keys(lircNode.remotes).forEach(function(remote) {
       logger.info('[IrRemote] Adding listeners for remote %s', remote);
       lircNode.remotes[remote].forEach(function(button) {
-        logger.info('[IrRemote %s] Adding listener for button %s', remote, button);
+        logger.info('[IrRemote %s] Adding listener for button %s',
+          remote, button);
         listeners.push(lircNode.addListener(button, remote, function(data) {
           if (data.repeat === '00') {
             self.emit('buttonPress', button);
@@ -28,15 +29,17 @@ function IrRemote(config, logger) {
       });
     });
   });
-  this.stop = function() {
+
+  this.close = () => new Promise((resolve, reject) => {
     Object.keys(lircNode.remotes).forEach(function(remote) {
-      logger.info('[IrRemote] Removing listeners for remote');
+      logger.info('[IrRemote] Removing listeners for remote %s', remote);
       listeners.forEach(function(listener) {
-        logger.info('[IrRemote] Removing listener %s', listener);
+        logger.info('[IrRemote %s] Removing listener %s', remote, listener);
         lircNode.removeListener(listener);
       });
+      resolve('success');
     });
-  };
+  });
 }
 
 util.inherits(IrRemote, EventEmitter);

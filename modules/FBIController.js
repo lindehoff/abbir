@@ -116,24 +116,20 @@ FBIController.prototype.start = function(images) {
       console.error(`exec error: ${error}`);
       return;
     }
-    console.log(`stdout: ${stdout}`);
-    console.log(`stderr: ${stderr}`);
-  });
   this.toggleSlideShow(this.slideShowInterval, false);
-}
+};
 
-FBIController.prototype.stop = function() {
+FBIController.prototype.close = () => new Promise((resolve, reject) => {
   logger.warn('[%s] Stoping fbi controller',
     config.abbir.screenName);
   exec('sudo killall -9 fbi', (error, stdout, stderr) => {
     if (error) {
-      console.error(`exec error: ${error}`);
+      resolve(`error: ${error}`);
       return;
     }
-    console.log(`stdout: ${stdout}`);
-    console.log(`stderr: ${stderr}`);
+    resolve('success');
   });
-};
+});
 
 FBIController.prototype.showNewImages = function(images) {
   this.stop();

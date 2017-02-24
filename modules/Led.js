@@ -136,21 +136,26 @@ function Led(logger, gpioPin) {
       clearInterval(fadeInterval);
     }
   };
-  this.stop = function() {
+  this.close = () => new Promise((resolve, reject) => {
+    logger.info('[LED %d] Releasing pin', pin);
     if (this.pulsing) {
       this.stopPulse();
     }
-    this.turnOff();
-    logger.info('[LED %d] Releasing pin', pin);
-    writeToPiBlaster(util.format('release %d', pin), function(err) {
+    writeToPiBlaster(util.format('%d=0', pin), function(err) {
       if (err) {
-        logger.error('[LED %d] Unable to release pin %d, error: ',
-          pin, err);
-        return;
+        resolve(util.format('[LED %d] Unable to turn of led, Error: ',
+          pin, err));
       }
-      logger.info('[LED %d] Pin %d released', pin, pin);
+      writeToPiBlaster(util.format('release %d', pin), function(err) {
+        if (err) {
+          resolve(util.format('[LED %d] Unable to release pin, Error: ',
+            pin, err));
+        }
+        logger.info('[LED %d] Pin %d released', pin, pin);
+        resolve('success');
+      });
     });
-  };
+  });
 }
 
 // Exports
