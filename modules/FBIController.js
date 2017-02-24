@@ -116,6 +116,7 @@ FBIController.prototype.start = function(images) {
       console.error(`exec error: ${error}`);
       return;
     }
+  });
   this.toggleSlideShow(this.slideShowInterval, false);
 };
 
