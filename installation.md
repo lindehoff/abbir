@@ -31,3 +31,6 @@ rm -rf pi-blaster
 sudo sed -i 's/DAEMON_OPTS=".*"/DAEMON_OPTS="-g 14"/' /etc/default/pi-blaster
 sudo systemctl enable pi-blaster -g 14
 ```
+
+## Using pm2
+pm2 start app.js --name abbir --kill-timeout 5000

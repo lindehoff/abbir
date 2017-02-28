@@ -105,23 +105,40 @@ function FBIController(Config, Logger, images, slideShowInterval = 60000) {
       _slideShowInterval = value;
     }
   });
+
+  Object.defineProperty(this, 'slideShow', {
+    enumerable: true,
+    get: () => {
+      return slideShow;
+    }
+  });
   this.images = images;
 }
 
-FBIController.prototype.start = function(images) {
+FBIController.prototype.start = function(images, cb) {
   let fbiCommand = util.format('sudo fbi --device %s -T %d -blend %d %s \'%s\'', config.fbi.device, config.fbi.virtualConsole, config.fbi.blend, config.fbi.extra, (images || this.images).join("' '"));
-  logger.info('Starting fbi with: %s %s', fbiCommand);
+  logger.info('Starting fbi');
   exec(fbiCommand, (error, stdout, stderr) => {
     if (error) {
       console.error(`exec error: ${error}`);
+      if (cb) {
+        cb(error);
+      }
       return;
+    }
+    if (cb) {
+      cb();
     }
   });
   this.toggleSlideShow(this.slideShowInterval, false);
 };
-
-FBIController.prototype.close = () => new Promise((resolve, reject) => {
+FBIController.prototype.stop = () => {
   logger.warn('[%s] Stoping fbi controller',
+    config.abbir.screenName);
+  sendKeyToTerminal(uinput.KEY_Q);
+};
+FBIController.prototype.close = () => new Promise((resolve, reject) => {
+  logger.warn('[%s] Closing fbi controller',
     config.abbir.screenName);
   sendKeyToTerminal(uinput.KEY_Q, function() {
     resolve('success');
@@ -230,7 +247,6 @@ FBIController.prototype.sendKey = function(button) {
     if(!isNaN(num)){
       numberString = util.format('%s%s', numberString, num)
     }
-    console.log()
     sendKeyToTerminal(uinput[button.replace('BTN_KP', 'KEY_')]);
   }
 }

@@ -61,15 +61,30 @@ irRemote.on('buttonPress', function(button) {
   }
 });
 
-const led = new Led(logger, 14);
-led.startPulse(5000);
+const led = new Led(logger, config.abbir.hardware.ledPin);
+led.turnOn();
 
-const button = new Button(config, logger, 4);
+const button = new Button(config, logger, config.abbir.hardware.buttonPin);
 button.on(button.ButtonEvents.READY, function() {
   console.log('Ready');
 });
 button.on(button.ButtonEvents.SINGLE_RELEASE, function() {
-  console.log('Press');
+  console.log('Running: %s', running);
+  if (running) {
+    fbiController.stop();
+    led.turnOff();
+    exec('/opt/vc/bin/tvservice --off');
+    running = false;
+  } else {
+    running = true;
+    led.turnOn();
+    exec('/opt/vc/bin/tvservice --preferred;fbset -depth 8; fbset -depth 16');
+    fbiController.start(null, (err) => {
+      if (!fbiController.slideShow) {
+        fbiController.toggleSlideShow();
+      }
+    });
+  }
 });
 
 const exit = new Array(
