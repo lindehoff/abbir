@@ -20,17 +20,33 @@ function EmailClient() {
   EventEmitter.call(this);
   const self = this;
   const mailListener = new MailListener(config.mailListener);
+  let reconnectInterval;
+
   mailListener.on('server:connected', function() {
+    if(reconnectInterval){
+      clearInterval(reconnectInterval);
+      reconnectInterval = null;
+    }
     logger.info('[%s] imapConnected', config.abbir.screenName);
   });
 
   mailListener.on('server:disconnected', function() {
-    logger.warn('[%s] imapDisconnected', config.abbir.screenName);
+    logger.warn('[%s] imapDisconnected, will try to reconnect every %d sec.',
+      config.abbir.screenName,
+      config.mailListener.connTimeout / 1000
+    );
+    reconnectInterval = setInterval(() => {
+      logger.info('[%s] Trying to reconnect', config.abbir.screenName);
+      self.start();
+    }, config.mailListener.connTimeout);
   });
 
   mailListener.on('error', function(err) {
     logger.error('[%s] imap error: ', config.abbir.screenName, err);
-    this.start();
+    reconnectInterval = setInterval(() => {
+      logger.info('[%s] Trying to reconnect', config.abbir.screenName);
+      self.start();
+    }, config.mailListener.connTimeout);
   });
 
   mailListener.on('mail', function(mail, seqno, attributes) {
