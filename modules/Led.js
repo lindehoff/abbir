@@ -9,6 +9,7 @@
 const fs = require('fs');
 const piBlasterPath = '/dev/pi-blaster';
 const util = require('util');
+const logger = require('winston');
 
 function writeToPiBlaster(cmd, callback) {
   const buffer = new Buffer(cmd + '\n');
@@ -35,7 +36,7 @@ function writeToPiBlaster(cmd, callback) {
   });
 }
 
-function Led(logger, gpioPin) {
+function Led(gpioPin) {
   logger.info('[LED %d] Initializing LED on GPIO %d', gpioPin, gpioPin);
   const pin = gpioPin;
   let pulse = false;

@@ -13,8 +13,9 @@ const async = require('async');
 const util = require('util');
 const _ = require('lodash');
 const EventEmitter = require('events').EventEmitter;
+const logger = require('winston');
 
-function EmailClient(config, logger) {
+function EmailClient(config) {
   EventEmitter.call(this);
   const self = this;
   const mailListener = new MailListener(config.mailListener);

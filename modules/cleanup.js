@@ -6,6 +6,9 @@
  */
 
 'use strict';
+
+const logger = require('winston');
+
 exports.Cleanup = function Cleanup(cleanUpCloses) {
   let cleanUpDone = false;
   process.on('cleanup', () => {
@@ -17,7 +20,7 @@ exports.Cleanup = function Cleanup(cleanUpCloses) {
           let err = false;
           values.forEach(value => {
             if (value !== 'success') {
-              console.log(value);
+              logger.error(value);
               err = true;
             }
           });
@@ -37,14 +40,13 @@ exports.Cleanup = function Cleanup(cleanUpCloses) {
 
   // catch ctrl+c event and exit normally
   process.on('SIGINT', function() {
-    console.log('trl-C...');
+    logger.info('Ctrl-C...');
     process.emit('cleanup');
   });
 
   //catch uncaught exceptions, trace, then exit normally
   process.on('uncaughtException', function(e) {
-    console.log('Uncaught Exception...');
-    console.log(e.stack);
+    logger.error('Uncaught Exception: %s', e.stack);
     process.exit(99);
   });
 };

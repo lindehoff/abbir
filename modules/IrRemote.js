@@ -9,8 +9,9 @@
 const EventEmitter = require('events').EventEmitter;
 const util = require('util');
 const lircNode = require('lirc_node');
+const logger = require('winston');
 
-function IrRemote(config, logger) {
+function IrRemote(config) {
   EventEmitter.call(this);
   const self = this;
   let listeners = [];

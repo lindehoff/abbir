@@ -16,8 +16,9 @@ const moment = require('moment-timezone');
 const util = require('util');
 const pathUtil = require('path');
 const EventEmitter = require('events').EventEmitter;
+const logger = require('winston');
 
-function ProcessIncomming(config, logger) {
+function ProcessIncomming(config) {
   EventEmitter.call(this);
   const self = this;
   AWS.config.update(config.amazon.s3Options);

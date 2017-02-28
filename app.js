@@ -8,37 +8,25 @@ const IrRemote = require('./modules/IrRemote');
 const Button = require('./modules/Button');
 const Led = require('./modules/Led');
 const config = require('./config');
+const logger = require('./modules/logger.js');
 require('shelljs/global');
-
-const logger = new (winston.Logger)({
-  transports: [
-    new (winston.transports.Console)({
-    level: config.winston.consoleLogLevel
-  }),
-    new (winston.transports.File)({
-      filename: config.winston.logfilePath,
-      level: config.winston.fileLogLevel
-    })
-  ]
-});
 
 let images = find(config.abbir.imagePath).filter(function(file) { return file.match(/\.jpg$/); });
 
-const fbiController = new FBIController(config,
-  logger, images, 10000);
+const fbiController = new FBIController(config, images, 10000);
 fbiController.start();
 
-const emailClient = new EmailClient(config, logger);
+const emailClient = new EmailClient(config);
 emailClient.start();
 emailClient.on('newFiles', function(path) {
   processIncomming.processDir(path);
 });
 
-const processIncomming = new ProcessIncomming(config, logger);
+const processIncomming = new ProcessIncomming(config);
 processIncomming.on('newImages', function(newImages) {
   fbiController.showNewImages(newImages);
 });
-const irRemote = new IrRemote(config, logger);
+const irRemote = new IrRemote(config);
 irRemote.on('buttonPress', function(button) {
   logger.info('Button %s pressed', button);
 
@@ -64,7 +52,7 @@ irRemote.on('buttonPress', function(button) {
 const led = new Led(logger, config.abbir.hardware.ledPin);
 led.turnOn();
 
-const button = new Button(config, logger, config.abbir.hardware.buttonPin);
+const button = new Button(config, config.abbir.hardware.buttonPin);
 button.on(button.ButtonEvents.READY, function() {
   console.log('Ready');
 });
