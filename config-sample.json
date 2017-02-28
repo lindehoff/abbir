@@ -38,6 +38,20 @@
           "email@domain.com"
         ]
       }
-    ]
+    ],
+    "hardware": {
+      "ledPin": 14,
+      "buttonPin": 4,
+      "lircInPin": 23
+    }
+  },
+  "amazon": {
+    "backup": false,
+    "s3Options": {
+      "accessKeyId": "",
+      "secretAccessKey": "",
+      "region": ""
+    },
+    "imageBucket": "abbir-lindehoff-kitchen"
   }
 }
