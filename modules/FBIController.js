@@ -12,6 +12,7 @@ const util = require('util');
 const uinput = require('uinput');
 const exec = require('child_process').exec;
 const logger = require('winston');
+const config = require('./Settings').config;
 
 let sendKeyToTerminal = function(key, cb) {
   var setupOptions = {
@@ -61,10 +62,8 @@ let resetSlideShowTimer = function(controller) {
   }
 };
 let currentImage = 0;
-let config;
 let numberString = '';
-function FBIController(Config, images, slideShowInterval = 60000) {
-  config = Config;
+function FBIController(images, slideShowInterval = 60000) {
   EventEmitter.call(this);
   let _images;
   let _slideShowInterval = slideShowInterval;

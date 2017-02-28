@@ -1,32 +1,31 @@
 'use strict';
-
-const winston = require('winston');
 const EmailClient = require('./modules/EmailClient');
 const ProcessIncomming = require('./modules/ProcessIncomming');
 const FBIController = require('./modules/FBIController');
 const IrRemote = require('./modules/IrRemote');
 const Button = require('./modules/Button');
 const Led = require('./modules/Led');
-const config = require('./config');
+const Settings = require('./modules/Settings');
 const logger = require('./modules/logger.js');
 require('shelljs/global');
 
+let config = Settings.config;
 let images = find(config.abbir.imagePath).filter(function(file) { return file.match(/\.jpg$/); });
 
-const fbiController = new FBIController(config, images, 10000);
+const fbiController = new FBIController(images, 10000);
 fbiController.start();
 
-const emailClient = new EmailClient(config);
+const emailClient = new EmailClient();
 emailClient.start();
 emailClient.on('newFiles', function(path) {
   processIncomming.processDir(path);
 });
 
-const processIncomming = new ProcessIncomming(config);
+const processIncomming = new ProcessIncomming();
 processIncomming.on('newImages', function(newImages) {
   fbiController.showNewImages(newImages);
 });
-const irRemote = new IrRemote(config);
+const irRemote = new IrRemote();
 irRemote.on('buttonPress', function(button) {
   logger.info('Button %s pressed', button);
 
@@ -49,10 +48,10 @@ irRemote.on('buttonPress', function(button) {
   }
 });
 
-const led = new Led(logger, config.abbir.hardware.ledPin);
+const led = new Led(config.abbir.hardware.ledPin);
 led.turnOn();
 
-const button = new Button(config, config.abbir.hardware.buttonPin);
+const button = new Button(config.abbir.hardware.buttonPin);
 button.on(button.ButtonEvents.READY, function() {
   console.log('Ready');
 });

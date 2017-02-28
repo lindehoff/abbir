@@ -10,6 +10,7 @@ const EventEmitter = require('events').EventEmitter;
 const util = require('util');
 const Gpio = require('onoff').Gpio;
 const logger = require('winston');
+const config = require('./Settings').config;
 const ButtonEvents = {
   READY: 0,
   LONG_PRESS: 1,
@@ -45,8 +46,7 @@ const ButtonEvents = {
   }
 };
 
-function Button(config,
-  gpioPin,
+function Button(gpioPin,
   nc = true,
   dubblePressTimeoutTime = 300,
   longPressTime = 1200,

@@ -17,8 +17,9 @@ const util = require('util');
 const pathUtil = require('path');
 const EventEmitter = require('events').EventEmitter;
 const logger = require('winston');
+const config = require('./Settings').config;
 
-function ProcessIncomming(config) {
+function ProcessIncomming() {
   EventEmitter.call(this);
   const self = this;
   AWS.config.update(config.amazon.s3Options);

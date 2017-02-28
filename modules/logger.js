@@ -1,5 +1,5 @@
 const logger = require('winston');
-const config = require('../config');
+const config = require('./Settings').config;
 logger.remove(logger.transports.Console);
 logger.add(logger.transports.Console, {
   level: config.winston.consoleLogLevel

@@ -14,8 +14,9 @@ const util = require('util');
 const _ = require('lodash');
 const EventEmitter = require('events').EventEmitter;
 const logger = require('winston');
+const config = require('./Settings').config;
 
-function EmailClient(config) {
+function EmailClient() {
   EventEmitter.call(this);
   const self = this;
   const mailListener = new MailListener(config.mailListener);
