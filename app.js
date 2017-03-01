@@ -14,7 +14,7 @@ let images = find(config.abbir.imagePath).filter(function(file) { return file.ma
 
 const fbiController = new FBIController(images, 10000);
 fbiController.start();
-
+let running = true;
 const emailClient = new EmailClient();
 emailClient.start();
 emailClient.on('newFiles', function(path) {
