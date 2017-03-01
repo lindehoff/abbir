@@ -1,12 +1,7 @@
 const logger = require('winston');
 const config = require('./Settings').config;
 logger.remove(logger.transports.Console);
-logger.add(logger.transports.Console, {
-  level: config.winston.consoleLogLevel
-});
-logger.add(logger.transports.File, {
-  filename: config.winston.logfilePath,
-  level: config.winston.fileLogLevel
-});
+logger.add(logger.transports.Console, config.winston.consoleOptions);
+logger.add(logger.transports.File, config.winston.fileOptions);
 
 module.exports = logger;
