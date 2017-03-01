@@ -20,33 +20,43 @@ function EmailClient() {
   EventEmitter.call(this);
   const self = this;
   const mailListener = new MailListener(config.mailListener);
-  let reconnectInterval;
-
+  let reconnectTimeout;
+  let reConnect = function(sleep) {
+    if(sleep || !reconnectTimeout){
+      sleep = sleep || config.mailListener.connTimeout;
+      logger.debug('[%s] Trying to reconnect', config.abbir.screenName);
+      self.start();
+      reconnectTimeout = setTimeout(() => {
+        if (sleep > (1000 * 60 * 60)) {
+          sleep = sleep * sleep;
+        }
+        if (reconnectTimeout) {
+          logger.debug('[%s] Will try to reconnect in %d sec.', config.abbir.screenName, sleep)
+          reConnect(sleep);
+        }
+      }, sleep);
+    }
+  }
   mailListener.on('server:connected', function() {
-    if(reconnectInterval){
-      clearInterval(reconnectInterval);
-      reconnectInterval = null;
+    if (reconnectTimeout) {
+      clearTimeout(reconnectTimeout);
+      reconnectTimeout = null;
     }
     logger.info('[%s] imapConnected', config.abbir.screenName);
   });
 
   mailListener.on('server:disconnected', function() {
-    logger.warn('[%s] imapDisconnected, will try to reconnect every %d sec.',
-      config.abbir.screenName,
-      config.mailListener.connTimeout / 1000
-    );
-    reconnectInterval = setInterval(() => {
-      logger.info('[%s] Trying to reconnect', config.abbir.screenName);
-      self.start();
-    }, config.mailListener.connTimeout);
+    logger.warn('[%s] imapDisconnected', config.abbir.screenName);
+    if (!reconnectTimeout) {
+      reConnect();
+    }
   });
 
   mailListener.on('error', function(err) {
-    logger.error('[%s] imap error: ', config.abbir.screenName, err);
-    reconnectInterval = setInterval(() => {
-      logger.info('[%s] Trying to reconnect', config.abbir.screenName);
-      self.start();
-    }, config.mailListener.connTimeout);
+    if (!reconnectTimeout) {
+      logger.error('[%s] imap error: ', config.abbir.screenName, err);
+      reConnect();
+    }
   });
 
   mailListener.on('mail', function(mail, seqno, attributes) {
