@@ -11,9 +11,15 @@ const fs = require('fs');
 const util = require('util');
 const uinput = require('uinput');
 const exec = require('child_process').exec;
+const execSync = require('child_process').execSync;
 const logger = require('winston');
 const config = require('./Settings').config;
 
+let _slideShow = false;
+let _currentImage = 0;
+let _numberString = '';
+let _keepAliveInterval;
+let _keepAlive = false;
 let sendKeyToTerminal = function(key, cb) {
   var setupOptions = {
     EV_KEY: [key]
@@ -21,7 +27,8 @@ let sendKeyToTerminal = function(key, cb) {
 
   uinput.setup(setupOptions, function(err, stream) {
     if (err) {
-      throw(err);
+      cb(err);
+      return;
     }
 
     var createOptions = {
@@ -36,12 +43,14 @@ let sendKeyToTerminal = function(key, cb) {
 
     uinput.create(stream, createOptions, function(err) {
       if (err) {
-        throw(err);
+        cb(err);
+        return;
       }
 
       uinput.key_event(stream, key, function(err) {
         if (err) {
-          throw(err);
+          cb(err);
+          return;
         }
         if (cb) {
           cb();
@@ -51,22 +60,21 @@ let sendKeyToTerminal = function(key, cb) {
   });
 };
 
-let slideShow = false;
 let resetSlideShowTimer = function(controller) {
-  if (slideShow) {
-    clearInterval(slideShow);
-    slideShow = null;
-    slideShow = setInterval(function() {
+  if (_slideShow) {
+    clearInterval(_slideShow);
+    _slideShow = null;
+    _slideShow = setInterval(function() {
       controller.nextImage();
     }, controller.slideShowInterval);
   }
 };
-let currentImage = 0;
-let numberString = '';
+
 function FBIController(images, slideShowInterval = 60000) {
   EventEmitter.call(this);
   let _images;
   let _slideShowInterval = slideShowInterval;
+  let self = this;
   Object.defineProperty(this, 'images', {
     enumerable: true,
     get: () => {
@@ -79,14 +87,16 @@ function FBIController(images, slideShowInterval = 60000) {
 
     set: value => {
       if (!Array.isArray(value)) {
-        throw new TypeError('The value must be an array.');
+        logger.error('[FBI Controller] Images is not an array');
+        return;
       }
       const array = [];
       for (let item of value) {
         if (!(fs.existsSync(item))) {
-          throw new TypeError('File must exit');
+          logger.warn('[FBI Controller] File does not exits %s', item);
+        } else {
+          array.push(item);
         }
-        array.push(item);
       }
       _images = array;
     }
@@ -107,165 +117,254 @@ function FBIController(images, slideShowInterval = 60000) {
   Object.defineProperty(this, 'slideShow', {
     enumerable: true,
     get: () => {
-      return slideShow;
+      return (_slideShow) ? true : false;
     }
   });
-  this.images = images;
-}
 
-FBIController.prototype.start = function(images, cb) {
-  let fbiCommand = util.format('sudo fbi --device %s -T %d -blend %d %s \'%s\'', config.fbi.device, config.fbi.virtualConsole, config.fbi.blend, config.fbi.extra, (images || this.images).join("' '"));
-  logger.info('Starting fbi');
-  exec(fbiCommand, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`exec error: ${error}`);
-      if (cb) {
-        cb(error);
+  Object.defineProperty(this, 'running', {
+    enumerable: true,
+    get: () => {
+      try {
+        if (execSync('ps cax | grep fbi')) {
+          return true;
+        } else {
+          return false;
+        }
+      } catch (error) {
+        return false;
       }
-      return;
-    }
-    if (cb) {
-      cb();
     }
   });
-  this.toggleSlideShow(this.slideShowInterval, false);
-};
-FBIController.prototype.stop = () => {
-  logger.warn('[%s] Stoping fbi controller',
-    config.abbir.screenName);
-  sendKeyToTerminal(uinput.KEY_Q);
-};
-FBIController.prototype.close = () => new Promise((resolve, reject) => {
-  logger.warn('[%s] Closing fbi controller',
-    config.abbir.screenName);
-  sendKeyToTerminal(uinput.KEY_Q, function() {
-    resolve('success');
-    /*
-    exec('sudo killall -9 fbi', (error, stdout, stderr) => {
-      if (error) {
-        resolve(`error: ${error}`);
+
+  this.start = function(images, cb) {
+    let fbiCommand = util.format('sudo fbi --device %s -T %d -blend %d %s \'%s\'',
+      config.fbi.device,
+      config.fbi.virtualConsole,
+      config.fbi.blend,
+      config.fbi.extra,
+      (images || this.images).join('\' \'')
+    );
+    logger.debug('[FBI Controller] Starting fbi: %s', fbiCommand);
+    exec(fbiCommand, (err, stdout, stderr) => {
+      if (err) {
+        logger.error('[FBI Controller] Error starting fbi, error: %s', err);
+        if (cb) {
+          cb(err);
+        }
         return;
       }
-      resolve('success');
-    });
-    */
-  });
-});
-
-FBIController.prototype.showNewImages = function(images) {
-  this.stop();
-  this.start(images);
-}
-
-FBIController.prototype.toggleSlideShow = function(interval=this.slideShowInterval, runDirect=true) {
-  let that = this;
-  if(slideShow && interval === this.slideShowInterval) {
-    logger.info('Slideshow is off');
-    clearInterval(slideShow);
-    slideShow = null;
-    return;
-  } else {
-    if(interval === this.slideShowInterval){
-      logger.info('Slideshow interval change');
-      clearInterval(slideShow);
-      slideShow = null;
-    }
-    slideShow = setInterval(function () {
-      that.nextImage();
-    }, interval);
-    logger.info('Slideshow is on');
-  }
-  if(runDirect) {
-    this.nextImage();
-  }
-}
-
-FBIController.prototype.toggleInfo = function() {
-  sendKeyToTerminal(uinput.KEY_I);
-  logger.info('Current image %s index %d', this.images[currentImage], currentImage);
-}
-
-FBIController.prototype.toggleVerbose = function() {
-  sendKeyToTerminal(uinput.KEY_V);
-}
-
-FBIController.prototype.nextImage = function() {
-  let that = this;
-  sendKeyToTerminal(uinput.KEY_J, function () {
-    resetSlideShowTimer(that);
-    numberString = '';
-    if(that.images.length - 1 === currentImage){
-      currentImage = 0;
-    } else {
-      ++currentImage;
-    }
-  });
-}
-
-FBIController.prototype.prevImage = function() {
-  let that = this;
-  numberString = '';
-  sendKeyToTerminal(uinput.KEY_K, function () {
-    resetSlideShowTimer(that);
-    if(currentImage === 0){
-      currentImage = that.images.length-1;
-    } else {
-      --currentImage;
-    }
-  });
-}
-
-FBIController.prototype.zoomIn = function() {
-  numberString = '';
-  sendKeyToTerminal(uinput.KEY_KPPLUS);
-}
-
-FBIController.prototype.zoomOut = function() {
-  numberString = '';
-  sendKeyToTerminal(uinput.KEY_KPMINUS);
-  this.goToImage(50);
-}
-
-FBIController.prototype.sendKey = function(button) {
-  let that = this;
-  if(button === 'BTN_ENTER'){
-    sendKeyToTerminal(uinput.KEY_G, function () {
-      resetSlideShowTimer(that);
-      let number = parseInt(numberString, 10)
-      if (!isNaN(number) && number <= that.images.length && number > 0) {
-        currentImage = number - 1;
+      logger.debug('[FBI Controller] fbi started');
+      if (cb) {
+        cb();
       }
-      numberString = '';
+      if (_slideShow) {
+        this.startSlideShow(false);
+      }
+      _keepAlive = true;
     });
-  } else if(button === 'BTN_BACK') {
-    this.goToImage(Math.floor(Math.random() * this.images.length) + 1  )
-  }else {
-    resetSlideShowTimer(that);
-    let num = parseInt(button.replace('BTN_KP', ''), 10);
-    if(!isNaN(num)){
-      numberString = util.format('%s%s', numberString, num)
+  };
+  this.stop = (cb) => {
+    logger.debug('[FBI Controller] Stopping fbi');
+    let self = this;
+    _keepAlive = false;
+    clearInterval(_keepAliveInterval);
+    _keepAliveInterval = null;
+    sendKeyToTerminal(uinput.KEY_Q, (err) => {
+      if (self.running) {
+        cb('Unable to stop fbi');
+      } else {
+        cb();
+      }
+    });
+  };
+  this.close = () => {
+    let self = this;
+    return new Promise((resolve, reject) => {
+      logger.debug('[FBI Controller] Closing fbi controller');
+      self.stop(function(err) {
+        if (err) {
+          resolve(util.format('[FBI Controller] Error: ', err));
+          return;
+        }
+        logger.debug('[FBI Controller] fbi stoped');
+        resolve('success');
+      });
+    });
+  };
+
+  this.stopSlideShow = function() {
+    if (_slideShow) {
+      logger.debug('[FBI Controller] Stoping slideshow');
+      clearInterval(_slideShow);
+      _slideShow = null;
+    } else {
+      logger.debug('[FBI Controller] Slideshow wasn\'t running');
+
     }
-    sendKeyToTerminal(uinput[button.replace('BTN_KP', 'KEY_')]);
-  }
-}
+  };
+  this.startSlideShow = function(runDirect=true) {
+    let self = this;
+    if (_slideShow) {
+      self.stopSlideShow();
+    }
+    _slideShow = setInterval(function() {
+      self.nextImage();
+    }, self.slideShowInterval);
+    logger.debug('[FBI Controller] Slideshow started');
+    if (runDirect) {
+      this.nextImage();
+    }
+  };
 
-FBIController.prototype.goToImage = function(index) {
-  let keys = [];
-  let that = this;
-  resetSlideShowTimer(that);
-  for (let i = 0; i < index.toString().length; i++){
-    setTimeout(function () {
-      sendKeyToTerminal(uinput['KEY_' + index.toString()[i]]);
-    }, i*100);
-  }
-  setTimeout(function () {
-    sendKeyToTerminal(uinput.KEY_G, function () {
-      currentImage = index - 1;
-      resetSlideShowTimer(that);
+  this.toggleInfo = function() {
+    sendKeyToTerminal(uinput.KEY_I, (err) => {
+      if (err) {
+        logger.error('[FBI Controller] Unable to toggle Info, error: %s', err);
+      } else {
+        logger.debug('[FBI Controller] Toggled Info');
+      }
     });
-  }, index.toString().length * 100);
+  };
 
+  this.toggleVerbose = function() {
+    sendKeyToTerminal(uinput.KEY_V, (err) => {
+      if (err) {
+        logger.error('[FBI Controller] Unable to toggle Verbose, error: %s', err);
+      } else {
+        logger.debug('[FBI Controller] Toggled Verbose');
+      }
+    });
+  };
+
+  this.nextImage = function() {
+    let self = this;
+    sendKeyToTerminal(uinput.KEY_J, function(err) {
+      if (err) {
+        logger.error('[FBI Controller] Unable to go to next image, error: %s',
+          err);
+      } else {
+        resetSlideShowTimer(self);
+        _numberString = '';
+        if (self.images.length - 1 === _currentImage) {
+          _currentImage = 0;
+        } else {
+          ++_currentImage;
+        }
+        logger.debug('[FBI Controller] Next image, current image: [%d of %d] %s',
+          _currentImage + 1,
+          self.images.length,
+          self.images[_currentImage]
+        );
+      }
+    });
+  };
+
+  this.prevImage = function() {
+    let self = this;
+    _numberString = '';
+    sendKeyToTerminal(uinput.KEY_K, function(err) {
+      if (err) {
+        logger.error('[FBI Controller] Unable to go to previous image, error: %s',
+          err);
+      } else {
+        resetSlideShowTimer(self);
+        if (_currentImage === 0) {
+          _currentImage = self.images.length - 1;
+        } else {
+          --_currentImage;
+        }
+        logger.debug(
+          '[FBI Controller] Previous image, current image: [%d of %d] %s',
+          _currentImage + 1,
+          self.images.length,
+          self.images[_currentImage]
+        );
+      }
+    });
+  };
+
+  this.zoomIn = function() {
+    let self = this;
+    _numberString = '';
+    sendKeyToTerminal(uinput.KEY_KPPLUS, (err) => {
+      if (err) {
+        logger.error('[FBI Controller] Unable to zoom in, error: %s', err);
+      } else {
+        resetSlideShowTimer(self);
+        logger.debug('[FBI Controller] Zoomed in');
+      }
+    });
+  };
+
+  this.zoomOut = function() {
+    let self = this;
+    _numberString = '';
+    sendKeyToTerminal(uinput.KEY_KPMINUS, (err) => {
+      if (err) {
+        logger.error('[FBI Controller] Unable to zoom out, error: %s', err);
+      } else {
+        resetSlideShowTimer(self);
+        logger.debug('[FBI Controller] Zoomed out');
+      }
+    });
+  };
+
+  this.sendKey = function(button) {
+    let self = this;
+    if (button === 'BTN_ENTER') {
+      sendKeyToTerminal(uinput.KEY_G, function() {
+        resetSlideShowTimer(self);
+        let number = parseInt(_numberString, 10);
+        if (!isNaN(number) && number <= self.images.length && number > 0) {
+          _currentImage = number - 1;
+        }
+        _numberString = '';
+      });
+    } else if (button === 'BTN_BACK') {
+      this.goToImage(Math.floor(Math.random() * this.images.length) + 1);
+    }else {
+      resetSlideShowTimer(self);
+      let num = parseInt(button.replace('BTN_KP', ''), 10);
+      if (!isNaN(num)) {
+        _numberString = util.format('%s%s', _numberString, num);
+      }
+      sendKeyToTerminal(uinput[button.replace('BTN_KP', 'KEY_')]);
+    }
+  };
+
+  this.goToImage = function(index) {
+    let keys = [];
+    let self = this;
+    resetSlideShowTimer(self);
+    for (let i = 0; i < index.toString().length; i++) {
+      setTimeout(function() {
+        sendKeyToTerminal(uinput['KEY_' + index.toString()[i]]);
+      }, i * 100);
+    }
+    setTimeout(function() {
+      sendKeyToTerminal(uinput.KEY_G, function() {
+        _currentImage = index - 1;
+        resetSlideShowTimer(self);
+      });
+    }, index.toString().length * 100);
+
+  };
+
+  this.sync = function() {
+    this.goToImage(_currentImage + 1);
+  };
+
+  this.images = images;
+  _keepAliveInterval = setInterval(() => {
+    if (_keepAlive && !self.running) {
+      logger.warn('[FBI Controller] Fbi is not running, trying to restart');
+      self.start(null, function(err) {
+        self.sync();
+      });
+    }
+  }, 2000);
 }
+
 util.inherits(FBIController, EventEmitter);
 // Exports
 module.exports = FBIController;

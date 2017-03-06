@@ -14,19 +14,22 @@ exports.Cleanup = function Cleanup(cleanUpCloses) {
   process.on('cleanup', () => {
     if (!cleanUpDone) {
       if (Array.isArray(cleanUpCloses)) {
+        logger.info('[Cleanup] Starting');
         let cleanUpPromises = cleanUpCloses.map(cleanUpClose => cleanUpClose());
         Promise.all(cleanUpPromises)
         .then(values => {
           let err = false;
           values.forEach(value => {
             if (value !== 'success') {
-              logger.error(value);
+              logger.error('[Cleanup] Error: %s', value);
               err = true;
             }
           });
+          logger.info('[Cleanup] Done');
           process.exit((err) ? 1 : 0);
         });
       } else {
+        logger.warn('[Cleanup] No array of cleanup promises, exit!');
         process.exit(0);
       }
       cleanUpDone = true;
@@ -35,18 +38,19 @@ exports.Cleanup = function Cleanup(cleanUpCloses) {
 
   // do app specific cleaning before exiting
   process.on('exit', function() {
+    logger.info('[Cleanup] Exit');
     process.emit('cleanup');
   });
 
   // catch ctrl+c event and exit normally
   process.on('SIGINT', function() {
-    logger.info('Ctrl-C...');
+    logger.info('[Cleanup] Ctrl-C...');
     process.emit('cleanup');
   });
 
   //catch uncaught exceptions, trace, then exit normally
   process.on('uncaughtException', function(e) {
-    logger.error('Uncaught Exception: %s', e.stack);
+    logger.error('[Cleanup] Uncaught Exception: %s', e.stack);
     process.exit(99);
   });
 };

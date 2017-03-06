@@ -42,7 +42,13 @@ irRemote.on('buttonPress', function(button) {
   }else if (button === 'BTN_STOP') {
     fbiController.toggleInfo();
   }else if (button === 'BTN_PLAYPAUSE') {
-    fbiController.toggleSlideShow();
+    if (fbiController.slideShow) {
+      fbiController.stopSlideShow();
+    } else {
+      fbiController.startSlideShow();
+    }
+  } else if (button === 'BTN_VOLUMEUP') {
+    logger.info('FBI running: %s', fbiController.running);
   }else {
     fbiController.sendKey(button);
   }
