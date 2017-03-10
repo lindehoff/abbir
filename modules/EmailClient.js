@@ -14,7 +14,8 @@ const util = require('util');
 const _ = require('lodash');
 const EventEmitter = require('events').EventEmitter;
 const logger = require('winston');
-const config = require('./Settings').config;
+const Settings = require('./Settings');
+const config = Settings.config;
 
 function EmailClient() {
   EventEmitter.call(this);
@@ -178,6 +179,7 @@ function EmailClient() {
     mailListener.stop();
     resolve('success');
   });
+  Settings.addCleanUpPromise(this.close);
 
 }
 

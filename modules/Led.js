@@ -10,6 +10,7 @@ const fs = require('fs');
 const piBlasterPath = '/dev/pi-blaster';
 const util = require('util');
 const logger = require('winston');
+const Settings = require('./Settings');
 
 function writeToPiBlaster(cmd, callback) {
   const buffer = new Buffer(cmd + '\n');
@@ -159,6 +160,7 @@ function Led(gpioPin) {
       });
     });
   });
+  Settings.addCleanUpPromise(this.close);
 }
 
 // Exports

@@ -17,7 +17,8 @@ const util = require('util');
 const pathUtil = require('path');
 const EventEmitter = require('events').EventEmitter;
 const logger = require('winston');
-const config = require('./Settings').config;
+const Settings = require('./Settings');
+const config = Settings.config;
 
 function ProcessIncomming() {
   EventEmitter.call(this);
@@ -32,6 +33,7 @@ function ProcessIncomming() {
       config.abbir.screenName);
     resolve('success');
   });
+  Settings.addCleanUpPromise(this.close);
 
   this.processDir = function(path) {
     fs.readdir(path, function(err, files) {

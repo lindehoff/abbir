@@ -10,7 +10,8 @@ const EventEmitter = require('events').EventEmitter;
 const util = require('util');
 const lircNode = require('lirc_node');
 const logger = require('winston');
-const config = require('./Settings').config;
+const Settings = require('./Settings');
+const config = Settings.config;
 
 function IrRemote() {
   EventEmitter.call(this);
@@ -42,6 +43,7 @@ function IrRemote() {
       resolve('success');
     });
   });
+  Settings.addCleanUpPromise(this.close);
 }
 
 util.inherits(IrRemote, EventEmitter);

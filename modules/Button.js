@@ -10,7 +10,9 @@ const EventEmitter = require('events').EventEmitter;
 const util = require('util');
 const Gpio = require('onoff').Gpio;
 const logger = require('winston');
-const config = require('./Settings').config;
+const Settings = require('./Settings');
+const config = Settings.config;
+
 const ButtonEvents = {
   READY: 0,
   LONG_PRESS: 1,
@@ -170,6 +172,7 @@ function Button(gpioPin,
     button.unexport();
     resolve('success');
   });
+  Settings.addCleanUpPromise(this.close);
 }
 
 util.inherits(Button, EventEmitter);

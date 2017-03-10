@@ -7,6 +7,7 @@ const Button = require('./modules/Button');
 const Led = require('./modules/Led');
 const Settings = require('./modules/Settings');
 const logger = require('./modules/logger.js');
+const cleanup = require('./modules/cleanup').Cleanup();
 require('shelljs/global');
 
 let config = Settings.config;
@@ -79,14 +80,8 @@ button.on(button.ButtonEvents.SINGLE_RELEASE, function() {
     });
   }
 });
-
-const exit = new Array(
-  led.close,
-  button.close,
-  irRemote.close,
-  emailClient.close,
-  processIncomming.close,
-  fbiController.close);
-
-const cleanup = require('./modules/cleanup').Cleanup(exit);
+Settings.addCleanUpPromise(() => new Promise((resolve, reject) => {
+    logger.info('[%s] App is shutting down');
+    resolve('success');
+  }));
 process.stdin.resume();

@@ -10,6 +10,7 @@ const logger = require('winston');
 const configPath = __dirname + '/../config.json';
 let Settings = (function() {
   let config;
+  let cleanUpPromises = [];
   return {
     config: function() {
       if (!config) {
@@ -18,7 +19,7 @@ let Settings = (function() {
       }
       return config;
     }(),
-    save: function() {
+    saveConfig: function() {
       logger.debug('[Settings] Saving config to %s', configPath);
       fs.writeFile(configPath,
         JSON.stringify(config, null, 2) , 'utf-8', (err) => {
@@ -27,7 +28,13 @@ let Settings = (function() {
               configPath,
               err);
           }
-        });
+        }
+      );
+    },
+    cleanUpPromises: cleanUpPromises,
+    addCleanUpPromise: function(cleanUpPromise) {
+      logger.debug('[Settings] Adding cleanUp Promise, current %d', cleanUpPromises.length);
+      cleanUpPromises.push(cleanUpPromise);
     }
   };
 })();

@@ -13,7 +13,8 @@ const uinput = require('uinput');
 const exec = require('child_process').exec;
 const execSync = require('child_process').execSync;
 const logger = require('winston');
-const config = require('./Settings').config;
+const Settings = require('./Settings');
+const config = Settings.config;
 
 let _slideShow = false;
 let _currentImage = 0;
@@ -191,6 +192,7 @@ function FBIController(images, slideShowInterval = 60000) {
       });
     });
   };
+  Settings.addCleanUpPromise(this.close);
 
   this.stopSlideShow = function() {
     if (_slideShow) {

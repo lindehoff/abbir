@@ -9,13 +9,16 @@
 
 const logger = require('winston');
 
-exports.Cleanup = function Cleanup(cleanUpCloses) {
+exports.Cleanup = function Cleanup() {
   let cleanUpDone = false;
   process.on('cleanup', () => {
     if (!cleanUpDone) {
-      if (Array.isArray(cleanUpCloses)) {
+      let cleanUpPromises = require('./Settings').cleanUpPromises;
+      if (Array.isArray(cleanUpPromises)) {
         logger.info('[Cleanup] Starting');
-        let cleanUpPromises = cleanUpCloses.map(cleanUpClose => cleanUpClose());
+        cleanUpPromises = cleanUpPromises.map(
+          cleanUpPromise => cleanUpPromise()
+        );
         Promise.all(cleanUpPromises)
         .then(values => {
           let err = false;
