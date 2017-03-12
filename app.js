@@ -65,9 +65,14 @@ button.on(button.ButtonEvents.READY, function() {
 button.on(button.ButtonEvents.SINGLE_RELEASE, function() {
   console.log('Running: %s', running);
   if (running) {
-    fbiController.stop();
-    led.turnOff();
-    exec('/opt/vc/bin/tvservice --off');
+    fbiController.stop((err) => {
+      if (err) {
+        logger.error('Unable to stop FBI, err: ', err);
+      } else {
+        led.turnOff();
+        exec('/opt/vc/bin/tvservice --off');
+      }
+    });
     running = false;
   } else {
     running = true;
