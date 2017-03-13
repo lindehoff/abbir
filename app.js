@@ -12,7 +12,30 @@ require('shelljs/global');
 
 let config = Settings.config;
 let images = find(config.abbir.imagePath).filter(function(file) { return file.match(/\.jpg$/); });
-
+let sleep = function() {
+  console.log('Running: %s', running);
+  if (running) {
+    fbiController.stop((err) => {
+      if (err) {
+        logger.error('Unable to stop FBI, err: ', err);
+      } else {
+        led.turnOff();
+        exec('/opt/vc/bin/tvservice --off');
+      }
+    });
+    running = false;
+  } else {
+    running = true;
+    led.turnOn();
+    exec('/opt/vc/bin/tvservice --preferred;fbset -depth 8; fbset -depth 16');
+    fbiController.start(null, (err) => {
+      if (!fbiController.slideShow) {
+        fbiController.startSlideShow(false);
+      }
+      setTimeout(fbiController.sync, 500);
+    });
+  }
+}
 const fbiController = new FBIController(images, 10000);
 fbiController.start();
 let running = true;
@@ -50,6 +73,9 @@ irRemote.on('buttonPress', function(button) {
     }
   } else if (button === 'BTN_VOLUMEUP') {
     logger.info('FBI running: %s', fbiController.running);
+  }else if (button === 'BTN_VOLUMEDOWN') {
+    logger.info('call sleep: ', fbiController.running);
+    sleep();
   }else {
     fbiController.sendKey(button);
   }
@@ -62,29 +88,8 @@ const button = new Button(config.abbir.hardware.buttonPin);
 button.on(button.ButtonEvents.READY, function() {
   console.log('Ready');
 });
-button.on(button.ButtonEvents.SINGLE_RELEASE, function() {
-  console.log('Running: %s', running);
-  if (running) {
-    fbiController.stop((err) => {
-      if (err) {
-        logger.error('Unable to stop FBI, err: ', err);
-      } else {
-        led.turnOff();
-        exec('/opt/vc/bin/tvservice --off');
-      }
-    });
-    running = false;
-  } else {
-    running = true;
-    led.turnOn();
-    exec('/opt/vc/bin/tvservice --preferred;fbset -depth 8; fbset -depth 16');
-    fbiController.start(null, (err) => {
-      if (!fbiController.slideShow) {
-        fbiController.toggleSlideShow();
-      }
-    });
-  }
-});
+
+button.on(button.ButtonEvents.SINGLE_RELEASE, sleep);
 Settings.addCleanUpPromise(() => new Promise((resolve, reject) => {
     logger.info('[%s] App is shutting down');
     resolve('success');

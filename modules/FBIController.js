@@ -23,7 +23,7 @@ let _keepAliveInterval;
 let _keepAlive = false;
 let sendKeyToTerminal = function(key, cb) {
   var setupOptions = {
-    EV_KEY: [key]
+    EV_KEY: Array.isArray(key) ? key : [key]
   };
 
   uinput.setup(setupOptions, function(err, stream) {
@@ -42,21 +42,25 @@ let sendKeyToTerminal = function(key, cb) {
       }
     };
 
+    let done = function(err) {
+      if (err) {
+        cb(err);
+        return;
+      }
+      if (cb) {
+        cb();
+      }
+    };
     uinput.create(stream, createOptions, function(err) {
       if (err) {
         cb(err);
         return;
       }
-
-      uinput.key_event(stream, key, function(err) {
-        if (err) {
-          cb(err);
-          return;
-        }
-        if (cb) {
-          cb();
-        }
-      });
+      if (Array.isArray(key)) {
+        uinput.emit_combo(stream, setupOptions.EV_KEY, done);
+      } else {
+        uinput.key_event(stream, key, done);
+      }
     });
   });
 };
@@ -166,22 +170,36 @@ function FBIController(images, slideShowInterval = 60000) {
   };
   this.stop = (cb) => {
     logger.debug('[FBI Controller] Stopping fbi');
+    if (this.slideShow) {
+      this.stopSlideShow();
+    }
     let self = this;
     _keepAlive = false;
-    clearInterval(_keepAliveInterval);
-    _keepAliveInterval = null;
-    sendKeyToTerminal(uinput.KEY_Q, (err) => {
-      if (self.running) {
-        cb('Unable to stop fbi');
-      } else {
-        cb();
-      }
+    sendKeyToTerminal(uinput.KEY_ESC, (err) => {
+      setTimeout(() => {
+        if (self.running) {
+          logger.warn('[FBI Controller] Unable to quit fbi gracefuly, will force it to die');
+          execSync('sudo killall -9 fbi');
+          let tty1 = [ uinput.KEY_LEFTCTRL, uinput.KEY_LEFTALT, uinput.KEY_F1 ];
+          sendKeyToTerminal(tty1, (err) => {
+            if (err) {
+              cb('Unable to go to TTY1');
+            } else {
+              cd();
+            }
+          });
+        } else {
+          cb();
+        }
+      }, 100);
     });
   };
   this.close = () => {
     let self = this;
     return new Promise((resolve, reject) => {
       logger.debug('[FBI Controller] Closing fbi controller');
+      clearInterval(_keepAliveInterval);
+      _keepAliveInterval = null;
       self.stop(function(err) {
         if (err) {
           resolve(util.format('[FBI Controller] Error: ', err));
@@ -338,22 +356,29 @@ function FBIController(images, slideShowInterval = 60000) {
     let keys = [];
     let self = this;
     resetSlideShowTimer(self);
+
+    logger.debug('[FBI Controller] Entering numbers for image %d', index);
     for (let i = 0; i < index.toString().length; i++) {
       setTimeout(function() {
+        logger.debug('[FBI Controller] Entering number %s', index.toString()[i]);
         sendKeyToTerminal(uinput['KEY_' + index.toString()[i]]);
       }, i * 100);
     }
     setTimeout(function() {
+
+      logger.debug('[FBI Controller] Entering G');
       sendKeyToTerminal(uinput.KEY_G, function() {
         _currentImage = index - 1;
         resetSlideShowTimer(self);
+        logger.debug('[FBI Controller] GoTo image %d Done!', index);
       });
     }, index.toString().length * 100);
 
   };
 
   this.sync = function() {
-    this.goToImage(_currentImage + 1);
+    logger.debug('[FBI Controller] Syncing, goto image %d', _currentImage + 1);
+    self.goToImage(_currentImage + 1);
   };
 
   this.images = images;
@@ -361,7 +386,7 @@ function FBIController(images, slideShowInterval = 60000) {
     if (_keepAlive && !self.running) {
       logger.warn('[FBI Controller] Fbi is not running, trying to restart');
       self.start(null, function(err) {
-        self.sync();
+        setTimeout(self.sync, 500);
       });
     }
   }, 2000);
