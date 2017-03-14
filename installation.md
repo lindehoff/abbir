@@ -1,3 +1,10 @@
+## Install MongoDB
+```bash
+sudo apt-get update
+sudo apt-get upgrade -y
+sudo apt-get install mongodb-server -y
+sudo /etc/init.d/mongodb start
+```
 
 ## To make uinput work without sudo
 ```bash
