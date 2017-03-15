@@ -74,10 +74,11 @@ sudo apt-get install mongodb-server -y
 sudo /etc/init.d/mongodb start
 ```
 
-## Install Node.js
+## Install Node.js with nvm
 ```bash
-curl -sL https://deb.nodesource.com/setup_7.x | sudo -E bash -
-sudo apt install nodejs
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.1/install.sh | bash
+source ~/.bashrc
+nvm install node
 ```
 ## Getting abbir
 ```bash
@@ -118,7 +119,6 @@ rm -rf pi-blaster
 sudo sed -i 's/DAEMON_OPTS=".*"/DAEMON_OPTS="-g 14"/' /etc/default/pi-blaster
 sudo systemctl enable pi-blaster -g 14
 ```
-## fbi
 
 ## Install LIRC and listen on gpio 23
 ```bash
@@ -127,6 +127,7 @@ echo 'lirc_dev
 lirc_rpi gpio_in_pin=23' | sudo tee --append /etc/modules > /dev/null
 echo 'dtoverlay=lirc-rpi,gpio_in_pin=23,gpio_in_pull=high' | sudo tee --append /boot/config.txt > /dev/null
 sudo cp -f setup/lirc-hardware.conf /etc/lirc/hardware.conf
+sudo cp setup/Adafruit-MiniRemote.conf /etc/lirc/lircd.conf
 ```
 
 ## Using pm2
@@ -134,5 +135,6 @@ sudo cp -f setup/lirc-hardware.conf /etc/lirc/hardware.conf
 # Install pm2 
 npm install pm2 -g 
 # Add the app
+npm install
 pm2 start app.js --name abbir --kill-timeout 5000
 ```
