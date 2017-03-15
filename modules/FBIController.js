@@ -180,11 +180,13 @@ function FBIController(images, slideShowInterval = 60000) {
         if (self.running) {
           logger.warn('[FBI Controller] Unable to quit fbi gracefuly, will force it to die');
           execSync('sudo killall -9 fbi');
-          let tty1 = [ uinput.KEY_LEFTCTRL, uinput.KEY_LEFTALT, uinput.KEY_F1 ];
+          logger.debug('[FBI Controller] Returning to TTY1');
+          let tty1 = [uinput.KEY_LEFTCTRL, uinput.KEY_LEFTALT, uinput.KEY_F1];
           sendKeyToTerminal(tty1, (err) => {
             if (err) {
               cb('Unable to go to TTY1');
             } else {
+              logger.debug('[FBI Controller] Successfully returned to TTY1');
               cd();
             }
           });
