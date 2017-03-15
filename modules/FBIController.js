@@ -187,22 +187,24 @@ function FBIController(images, slideShowInterval = 60000) {
               cb('Unable to go to TTY1');
             } else {
               logger.debug('[FBI Controller] Successfully returned to TTY1');
-              cd();
+              cb();
             }
           });
         } else {
           cb();
         }
-      }, 100);
+      }, 200);
     });
   };
   this.close = () => {
     let self = this;
     return new Promise((resolve, reject) => {
+      let fallBack = setTimeout(() => resolve(util.format('[FBI Controller] Error: Close never ended in time')), 2000);
       logger.debug('[FBI Controller] Closing fbi controller');
       clearInterval(_keepAliveInterval);
       _keepAliveInterval = null;
       self.stop(function(err) {
+        clearTimeout(fallBack);
         if (err) {
           resolve(util.format('[FBI Controller] Error: ', err));
           return;
