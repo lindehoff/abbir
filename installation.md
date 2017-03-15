@@ -137,4 +137,5 @@ npm install pm2 -g
 # Add the app
 npm install
 pm2 start app.js --name abbir --kill-timeout 5000
+pm2 startup
 ```
