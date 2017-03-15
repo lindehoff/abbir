@@ -132,4 +132,9 @@ sudo apt-get autoclean
 ```
 
 ## Using pm2
+```bash
+# Install pm2 
+npm install pm2 -g 
+# Add the app
 pm2 start app.js --name abbir --kill-timeout 5000
+```
