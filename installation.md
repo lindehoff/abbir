@@ -25,8 +25,7 @@ sudo dpkg-reconfigure locales
 
 # Upgrade it.
 sudo apt-get update
-sudo apt-get upgrade
-sudo apt-get dist-upgrade
+sudo apt-get full-upgrade
 
 # Setting screen resolution.
 # For this screen: http://www.dx.com/p/10-1-digital-ips-screen-1280-x-800-drive-board-for-raspberry-pcduino-cubieboard-black-275804#.VOuY9vmG_S4
@@ -73,6 +72,12 @@ sudo apt-get update
 sudo apt-get upgrade -y
 sudo apt-get install mongodb-server -y
 sudo /etc/init.d/mongodb start
+```
+
+## Install Node.js
+```bash
+curl -sL https://deb.nodesource.com/setup_7.x | sudo -E bash -
+sudo apt install nodejs
 ```
 
 ## To make uinput work without sudo
