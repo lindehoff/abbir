@@ -74,10 +74,11 @@ sudo apt-get install mongodb-server -y
 sudo /etc/init.d/mongodb start
 ```
 
-## Install Node.js
+## Install Node.js with nvm
 ```bash
-curl -sL https://deb.nodesource.com/setup_7.x | sudo -E bash -
-sudo apt install nodejs
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.1/install.sh | bash
+source ~/.bashrc
+nvm install node
 ```
 ## Getting abbir
 ```bash
