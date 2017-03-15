@@ -1,3 +1,11 @@
+## Install Raspbian on SD-card
+```bash
+diskutil list
+diskutil unmountDisk /dev/disk<disk# from diskutil>
+sudo dd bs=1m if=image.img of=/dev/rdisk<disk# from diskutil>
+```
+This will take a few minutes, depending on the image file size. You can check the progress by sending a SIGINFO signal (press Ctrl+T).
+
 ## Install MongoDB
 ```bash
 sudo apt-get update
