@@ -75,10 +75,11 @@ let resetSlideShowTimer = function(controller) {
   }
 };
 
-function FBIController(images, slideShowInterval = 60000) {
+function FBIController(images, slideShowInterval = 60000, startSlideShow = true) {
   EventEmitter.call(this);
   let _images;
   let _slideShowInterval = slideShowInterval;
+  _slideShow = startSlideShow;
   let self = this;
   Object.defineProperty(this, 'images', {
     enumerable: true,
