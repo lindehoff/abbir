@@ -5,6 +5,49 @@ diskutil unmountDisk /dev/disk<disk# from diskutil>
 sudo dd bs=1m if=image.img of=/dev/rdisk<disk# from diskutil>
 ```
 This will take a few minutes, depending on the image file size. You can check the progress by sending a SIGINFO signal (press Ctrl+T).
+### Init config
+```bash
+# Run the raspi-config (at first boot you will end up in the config).
+# But if you don't run the following.
+sudo raspi-config
+# To do in raspi-config:
+# Expand the filesystem.
+# Change the default password for the "pi" user.
+# Set you language and keyboard layout.
+# -> Under advanced options...
+# Set your hostname.
+# Enable SSH-server.
+# (Update to the latest version)
+
+# Fix locale: Cannot set LC_CTYPE to default locale: No such file or directory
+sudo locale-gen "en_US.UTF-8"
+sudo dpkg-reconfigure locales
+
+# Upgrade it.
+sudo apt-get update
+sudo apt-get upgrade
+sudo apt-get dist-upgrade
+
+# Setting screen resolution.
+# For this screen: http://www.dx.com/p/10-1-digital-ips-screen-1280-x-800-drive-board-for-raspberry-pcduino-cubieboard-black-275804#.VOuY9vmG_S4
+sudo nano /boot/config.txt
+# enable and change the following values.
+hdmi_force_hotplug=1
+hdmi_group=2
+hdmi_mode=28
+# Comment out all other lines regarding HDMI and Overscan.
+# Save and exit.
+
+# Remove the annoying warning on boot.
+sudo nano /boot/cmdline.txt
+# Add the following before elevator=deadline.
+cgroup_enable=memory 
+# If you want to quiet down the kernel and remove the logo at start.
+# Add the following at the end of the line.
+logo.nologo quiet
+
+# Save, exit and reboot.
+```
 
 ## Install MongoDB
 ```bash
@@ -45,6 +88,24 @@ cd ..
 rm -rf pi-blaster
 sudo sed -i 's/DAEMON_OPTS=".*"/DAEMON_OPTS="-g 14"/' /etc/default/pi-blaster
 sudo systemctl enable pi-blaster -g 14
+```
+## Cleaning up installation
+```bash
+######################################################################################
+### -- WARNING!! This removes EVERYTHING not needed for the project!! WARNING!! -- ###
+### -- You will NOT have any desktop or GUI when you have run these commands!!! -- ###
+### -- After this it's terminal ONLY access, either on the console or via SSH!! -- ###
+######################################################################################
+
+sudo apt-get install deborphan
+sudo apt-get autoremove --purge desktop-* gnome-.*
+# Lots of stuff may not be "installed so not selected...." Just hang in there and answer Yes...
+# This will take a while... :)
+sudo apt-get autoremove --purge $(deborphan)
+# This will take a while as well... :)
+sudo apt-get autoremove --purge
+sudo apt-get autoclean
+# Reboot just for the fun of it!
 ```
 
 ## Using pm2
