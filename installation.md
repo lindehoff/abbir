@@ -79,6 +79,12 @@ sudo /etc/init.d/mongodb start
 curl -sL https://deb.nodesource.com/setup_7.x | sudo -E bash -
 sudo apt install nodejs
 ```
+## Getting abbir
+```bash
+sudo apt-get install git -y
+git clone https://github.com/lindehoff/abbir.git
+cd abbir
+```
 
 ## To make uinput work without sudo
 ```bash
