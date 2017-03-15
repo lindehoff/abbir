@@ -118,23 +118,15 @@ rm -rf pi-blaster
 sudo sed -i 's/DAEMON_OPTS=".*"/DAEMON_OPTS="-g 14"/' /etc/default/pi-blaster
 sudo systemctl enable pi-blaster -g 14
 ```
-## Cleaning up installation
-```bash
-######################################################################################
-### -- WARNING!! This removes EVERYTHING not needed for the project!! WARNING!! -- ###
-### -- You will NOT have any desktop or GUI when you have run these commands!!! -- ###
-### -- After this it's terminal ONLY access, either on the console or via SSH!! -- ###
-######################################################################################
+## fbi
 
-sudo apt-get install deborphan
-sudo apt-get autoremove --purge desktop-* gnome-.*
-# Lots of stuff may not be "installed so not selected...." Just hang in there and answer Yes...
-# This will take a while... :)
-sudo apt-get autoremove --purge $(deborphan)
-# This will take a while as well... :)
-sudo apt-get autoremove --purge
-sudo apt-get autoclean
-# Reboot just for the fun of it!
+## Install LIRC and listen on gpio 23
+```bash
+sudo apt-get install lirc -y
+echo 'lirc_dev
+lirc_rpi gpio_in_pin=23' | sudo tee --append /etc/modules > /dev/null
+echo 'dtoverlay=lirc-rpi,gpio_in_pin=23,gpio_in_pull=high' | sudo tee --append /boot/config.txt > /dev/null
+sudo cp -f setup/lirc-hardware.conf /etc/lirc/hardware.conf
 ```
 
 ## Using pm2
