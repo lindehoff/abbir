@@ -17,13 +17,15 @@ const logger = require('winston');
 const Settings = require('./Settings');
 const config = Settings.config;
 
+let closing = false;
+
 function EmailClient() {
   EventEmitter.call(this);
   const self = this;
   let mailListener = new MailListener(config.mailListener);
   let reconnectTimeout;
   let reConnect = function(sleep) {
-    if (sleep || !reconnectTimeout) {
+    if (!closing && (sleep || !reconnectTimeout)) {
       sleep = sleep || config.mailListener.connTimeout;
       logger.info('[%s] Trying to reconnect', config.abbir.screenName);
       mailListener = new MailListener(config.mailListener);
@@ -176,6 +178,7 @@ function EmailClient() {
   };
 
   this.close = () => new Promise((resolve, reject) => {
+    closing = true;
     mailListener.stop();
     resolve('success');
   });
