@@ -49,6 +49,24 @@ logo.nologo quiet
 # Save, exit and reboot.
 ```
 
+## Install samba for network sharing
+```bash
+sudo apt-get install samba samba-common-bin
+sudo smbpasswd -a pi
+```
+You also need to add the following section of code to `sudo nano /etc/samba/smb.conf`:
+```
+[pihome]
+   comment= Pi Home
+   path=/home/pi
+   browseable=Yes
+   writeable=Yes
+   only guest=no
+   create mask=0777
+   directory mask=0777
+   public=no
+```
+
 ## Install MongoDB
 ```bash
 sudo apt-get update
