@@ -32,7 +32,7 @@
     "moment-timezone": "^0.5.11",
     "mongoose": "^4.9.0",
     "onoff": "^1.1.2",
-    "uinput": "^1.0.0",
+    "uinput": "^1.1.0",
     "winston": "^2.3.0"
   }
 }
