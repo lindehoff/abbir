@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const moment = require('moment');
-const config = require('./Settings').config;
 const util = require('util');
 
 const Schema = mongoose.Schema;
@@ -20,7 +19,7 @@ const UserSchema = Schema({
 
 
 // Virtual for "full" name
-AuthorSchema
+UserSchema
 .virtual('name')
 .get(function() {
   return util.format('%s %s', this.firstName, this.familyName);
