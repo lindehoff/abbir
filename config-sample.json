@@ -60,5 +60,8 @@
       "region": ""
     },
     "imageBucket": "abbir-lindehoff-kitchen"
+  },
+  "database": {
+    "connectionString": "mongodb://localhost/abbir"
   }
 }

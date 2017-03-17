@@ -20,6 +20,11 @@ const logger = require('winston');
 const Settings = require('./Settings');
 const config = Settings.config;
 
+const Resource = require('../models/Resource');
+const ResourceType = require('../models/ResourceType');
+const User = require('../models/User');
+const Album = require('../models/Album');
+
 function ProcessIncomming() {
   EventEmitter.call(this);
   const self = this;
@@ -47,6 +52,10 @@ function ProcessIncomming() {
       let albumInfo = files.find(fileName => fileName === 'info.json');
       if (albumInfo) {
         albumInfo = JSON.parse(fs.readFileSync(path + albumInfo, 'utf8'));
+        let album = new Album({name: albumInfo.title});
+        album.save((err) => {
+          console.log('New album: ' + album);
+        });
       }
       let newImages = [];
       async.each(files, function(file, callback) {
