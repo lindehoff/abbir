@@ -52,9 +52,13 @@ function ProcessIncomming() {
       let albumInfo = files.find(fileName => fileName === 'info.json');
       if (albumInfo) {
         albumInfo = JSON.parse(fs.readFileSync(path + albumInfo, 'utf8'));
-        let album = new Album({name: albumInfo.title});
-        album.save((err) => {
-          console.log('New album: ' + album);
+        console.log('Email: ',  albumInfo.from);
+        User.findOne({'email': albumInfo.from}, function(err, owner) {
+          console.log(owner);
+          let album = new Album({name: albumInfo.title, owner: owner});
+          album.save((err) => {
+            console.log('New album: ' + album);
+          });
         });
       }
       let newImages = [];
