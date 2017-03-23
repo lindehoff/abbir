@@ -37,7 +37,7 @@ let sleep = function() {
     });
   }
 }
-const fbiController = new FBIController(images, 10000);
+const fbiController = new FBIController(images, 30000);
 fbiController.start();
 let running = true;
 const emailClient = new EmailClient();

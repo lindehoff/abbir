@@ -3,11 +3,7 @@ const Resource = require('./models/Resource');
 const ResourceType = require('./models/ResourceType');
 const User = require('./models/User');
 const Album = require('./models/Album');
-
-const mongoose = require('mongoose');
-mongoose.connect('mongodb://localhost/myappdatabase');
-let db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+const Database = require('./modules/Database.js');
 
 let users = [];
 let resourceTypes = [];
@@ -47,8 +43,13 @@ function resourceTypeCreate(name, cb) {
   });
 }
 
-function albumCreate(name, cb) {
-  let album = new Album({name: name});
+function albumCreate(name, owner, cb) {
+  let album = new Album(
+    {
+      name: name,
+      owner: owner
+    }
+  );
   album.save(function(err) {
     if (err) {
       cb(err, null);
@@ -82,7 +83,7 @@ function resourceCreate(name, owner, fileName, resourceType, album, created, cb)
   });
 }
 
-function createResourceTypesAlbumsUsers(cb) {
+function createResourceTypesUsers(cb) {
   async.parallel(
     [
       function(callback) {
@@ -92,20 +93,28 @@ function createResourceTypesAlbumsUsers(cb) {
         resourceTypeCreate('video', callback);
       },
       function(callback) {
-        albumCreate('Julen 2010', callback);
-      },
-      function(callback) {
-        albumCreate('Sommar 2011', callback);
-      },
-      function(callback) {
-        albumCreate('Barnkalas', callback);
-      },
-      function(callback) {
         userCreate('Jacob', 'Lindehoff', 'lindehoff', 'Admin', ['jacob@lindehoff.com', 'jacob.lindehoff@lnu.se'], callback);
       },
       function(callback) {
         userCreate('Thomas', 'Nilsson', 'tnilsson', 'Member', ['nilsson@wtre.net'], callback);
       },
+    ],
+    cb
+  );
+}
+
+function createAlbums(cb) {
+  async.parallel(
+    [
+      function(callback) {
+        albumCreate('Julen 2010', users[1], callback);
+      },
+      function(callback) {
+        albumCreate('Sommar 2011', users[1], callback);
+      },
+      function(callback) {
+        albumCreate('Barnkalas', users[0], callback);
+      }
     ],
     cb
   );
@@ -127,7 +136,8 @@ function createResources(cb) {
 }
 
 async.series([
-    createResourceTypesAlbumsUsers,
+    createResourceTypesUsers,
+    createAlbums,
     createResources
 ],
 // optional callback
@@ -138,5 +148,6 @@ function(err, results) {
     console.log('Resources: ' + resources);
   }
   //All done, disconnect from database
-  mongoose.connection.close();
+  console.log('Close DB');
+  Database.mongoose.connection.close();
 });
