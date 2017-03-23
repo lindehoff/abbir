@@ -1,9 +1,9 @@
 const async = require('async');
+const Database = require('./modules/Database.js');
 const Resource = require('./models/Resource');
 const ResourceType = require('./models/ResourceType');
 const User = require('./models/User');
 const Album = require('./models/Album');
-const Database = require('./modules/Database.js');
 
 let users = [];
 let resourceTypes = [];

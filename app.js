@@ -1,4 +1,5 @@
 'use strict';
+const Database = require('./modules/Database.js');
 const EmailClient = require('./modules/EmailClient');
 const ProcessIncomming = require('./modules/ProcessIncomming');
 const FBIController = require('./modules/FBIController');
@@ -7,7 +8,6 @@ const Button = require('./modules/Button');
 const Led = require('./modules/Led');
 const Settings = require('./modules/Settings');
 const logger = require('./modules/logger.js');
-const Database = require('./modules/Database.js');
 const cleanup = require('./modules/cleanup').Cleanup();
 require('shelljs/global');
 
