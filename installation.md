@@ -40,7 +40,7 @@ hdmi_mode=28
 # Remove the annoying warning on boot.
 sudo nano /boot/cmdline.txt
 # Add the following before elevator=deadline.
-cgroup_enable=memory 
+cgroup_enable=memory
 # If you want to quiet down the kernel and remove the logo at start.
 # Add the following at the end of the line.
 logo.nologo quiet
@@ -130,10 +130,15 @@ sudo cp -f setup/lirc-hardware.conf /etc/lirc/hardware.conf
 sudo cp setup/Adafruit-MiniRemote.conf /etc/lirc/lircd.conf
 ```
 
+## Installing other dependency
+```bash
+sudo apt-get install graphicsmagick -y
+```
+
 ## Using pm2
 ```bash
-# Install pm2 
-npm install pm2 -g 
+# Install pm2
+npm install pm2 -g
 # Add the app
 npm install
 pm2 start app.js --name abbir --kill-timeout 5000

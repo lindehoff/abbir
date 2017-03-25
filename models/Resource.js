@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const moment = require('moment');
 const util = require('util');
+const config = require('../modules/Settings').config;
+
 
 const Schema = mongoose.Schema;
 

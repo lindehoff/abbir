@@ -7,7 +7,7 @@
 
 'use strict';
 const fs = require('fs');
-const mkdirp = require('mkdirp');
+const mkdirp = require('mkdirp-promise');
 const async = require('async');
 const exec = require('child_process').exec;
 const AWS = require('aws-sdk');
@@ -17,6 +17,7 @@ const util = require('util');
 const pathUtil = require('path');
 const EventEmitter = require('events').EventEmitter;
 const logger = require('winston');
+const crypto = require('crypto');
 const Settings = require('./Settings');
 const config = Settings.config;
 
@@ -41,184 +42,206 @@ function ProcessIncomming() {
   Settings.addCleanUpPromise(this.close);
 
   this.processDir = function(path) {
-    fs.readdir(path, function(err, files) {
-      if (err) {
-        logger.error('[%s] Could not list the directory %s, error: ',
-          config.abbir.screenName,
-          path,
-          err);
-        return;
-      }
-      let albumInfo = files.find(fileName => fileName === 'info.json');
-      if (albumInfo) {
-        readJSON(path + albumInfo)
-        .then(function(albumInfo){
-          User.findOne({'email': albumInfo.from}).exec()
-          .then(function(owner) {
-            let album = new Album({name: albumInfo.title, owner: owner});
-            return album.save();
-          })
-          .then(function(album) {
-            let newImages = [];
-            async.each(files, function(file, callback) {
-              let filePath = path + file;
-              if (pathUtil.extname(file).toLowerCase() === '.jpg') {
-                readFile(filePath, 'utf8')
-                .then(function(data) {
-                  return getImageDate(data)
-                })
-                .then(function(date) {
-                  let newPath = util.format('%s%s/%s/%s/%s/',
-                    config.abbir.imagePath,
-                    albumInfo.user,
-                    date.format('YYYY'),
-                    date.format('MM'),
-                    albumInfo.title);
-                  let newFileName = util.format('%s [%s] %s.jpg',
-                    date.format('YYYY-MM-DDThh.mm.ss'),
-                    albumInfo.user,
-                    albumInfo.title);
-                  return backup(data, newPath + newFileName, config.amazon.backup)
-                })
-                .then(function() {
-                  mkdirp(newPath, function(err) {
-                          if (err) {
-                            logger.warn('[%s] Unable to create path %s, Error: ',
-                              config.abbir.screenName,
-                              newPath,
-                              err);
-                          } else {
-                            let newFilePath = newPath + newFileName;
-                            gm(data)
-                            .comment(util.format('%s. Sent from %s (%s) ',
-                              albumInfo.title,
-                              albumInfo.user,
-                              albumInfo.from))
-                            .resize(config.abbir.imageSize, config.abbir.imageSize)
-                            .write(newFilePath, function(err) {
-                              if (err) {
-                                logger.warn('[%s] Unable to save/resize image %s from email [%s], Error: ',
-                                  config.abbir.screenName,
-                                  newFileName,
-                                  albumInfo.messageId,
-                                  err);
-                              } else {
-                                logger.info('[%s] Image %s saved and resized from email [%s]',
-                                  config.abbir.screenName,
-                                  newFileName,
-                                  albumInfo.messageId);
-                                exec('exiftran -ai \'' + newFilePath + '\'', function() {
-                                  logger.info('[%s] Updating timestamp in image %s to %s',
-                                    config.abbir.screenName,
-                                    newFilePath,
-                                    date);
-                                  fs.utimes(newFilePath, new Date(date) / 1000, new Date(albumInfo.date) / 1000, function (err) {
-                                    if (err) {
-                                      logger.warn('[%s] Unable to update timestamp in image %s to %s, Error: ',
-                                        config.abbir.screenName,
-                                        newFilePath,
-                                        date,
-                                        err);
-                                    } else {
-                                      logger.info('[%s] Image %s date changed]',
-                                        config.abbir.screenName,
-                                        newFilePath);
-                                    }
-                                    fs.unlinkSync(filePath);
-                                    newImages.push(newFilePath);
-                                    callback();
-                                  });
-                                });
-                              }
-                            });
-                          }
-                        });
-
-                      });
-                    } else {
-                      fs.unlinkSync(filePath);
-                      callback();
-                    }
-                  });
-                });
-              } else {
-                fs.unlinkSync(filePath);
-                callback();
-              }
-            }, function(err) {
-              if (err) {
-                logger.error('[%s] Unable to process some files in directory %s, error: ',
-                  config.abbir.screenName,
-                  path,
-                  err);
-              } else {
-                fs.rmdir(path, function(err) {
+    let processedData = {
+      path: path,
+      newResources: []
+    };
+    readdir(processedData.path)
+    .then(files => {
+      let albumInfoPath = files.find(fileName => fileName === 'info.json');
+      if (albumInfoPath) {
+        readJSON(path + albumInfoPath)
+        .then(albumInfo => {
+          processedData.albumInfo = albumInfo;
+          return User.findOne({'email': albumInfo.from}).exec()
+        })
+        .then(owner =>  {
+          processedData.owner = owner;
+          processedData.album = new Album({name: processedData.albumInfo.title, owner: owner});
+          return processedData.album.save();
+        })
+        .then(album => {
+          processedData.album = album;
+          return ResourceType.findOne({'name': 'image'}).exec()
+        })
+        .then(imageResourceType =>  {
+          let resourceDetail = {
+            name: null,
+            created: null,
+            fileName: null,
+            owner: processedData.owner,
+            resourceType: imageResourceType,
+            album: processedData.album
+          };
+          async.each(files, function(file, callback) {
+            let filePath = path + file;
+            let fileData;
+            let resource;
+            if (pathUtil.extname(file).toLowerCase() === '.jpg') {
+              readFile(filePath)
+              .then(data => {
+                fileData = data;
+                console.log('Data: ', data.length);
+                return getImageDate(fileData);
+              })
+              .then(date => {
+                resourceDetail.created = date;
+                resourceDetail.fileName = util.format('%s [%s] %s.jpg',
+                  date.format('YYYY-MM-DDThh.mm.ss'),
+                  processedData.album.owner.userName,
+                  processedData.album.name
+                );
+                resourceDetail.name = resourceDetail.fileName;
+                resource = new Resource(resourceDetail);
+                return backup(fileData, resource.localPath);
+              })
+              .then(onlineUrl => {
+                resource.onlineUrl = onlineUrl;
+                return mkdirp(resource.localPath);
+              })
+              .then(() => {
+                gm(fileData)
+                .resize(config.abbir.imageSize, config.abbir.imageSize)
+                .write(resource.localPath, function(err) {
                   if (err) {
-                    logger.warn('[%s] Unable to delete directory %s, error: ',
-                      config.abbir.screenName,
-                      path,
+                    logger.warn('[ProcessIncomming] Unable to save/resize image %s from email [%s], Error: ',
+                      resource.fileName,
+                      processedData.albumInfo.messageId,
                       err);
                   } else {
-                    logger.info('[%s] Deleted directory %s',
-                      config.abbir.screenName,
-                      path);
+                    logger.info('[ProcessIncomming] Image %s saved and resized from email [%s]',
+                      resource.fileName,
+                      processedData.albumInfo.messageId);
+                    exec('exiftran -ai \'' + resource.localPath + '\'', function() {
+                      logger.info('[ProcessIncomming] Updating timestamp in image %s to %s',
+                        resource.localPath,
+                        date);
+                      fs.utimes(resource.localPath, new Date(date) / 1000, new Date(processedData.albumInfo.date) / 1000, function(err) {
+                        if (err) {
+                          logger.warn('[ProcessIncomming] Unable to update timestamp in image %s to %s, Error: ',
+                            resource.localPath,
+                            date,
+                            err);
+                        } else {
+                          logger.info('[ProcessIncomming] Image %s date changed]',
+                            resource.localPath);
+                        }
+                        fs.unlinkSync(filePath);
+                        resource.save()
+                        .then(imageResource => {
+                          processedData.newResources.push(imageResource);
+                          callback();
+                        })
+                        .catch(err => {
+                          logger.error('[ProcessIncomming] Unable to save resource %s to database, Error: ',
+                            resource.localPath,
+                            err);
+                          callback(err);
+                        });
+                      });
+                    });
                   }
                 });
-              }
-              self.emit('newImages', newImages);
-            });
+              })
+              .catch(err => {
+                logger.error('[ProcessIncomming] Unable to process file %s, error: ',
+                  filePath,
+                  err);
+              });
+            } else {
+              logger.info('[ProcessIncomming] Not an jpg image',
+                filePath);
+            }
           });
-        })
-        .catch(function(err) {
-          logger.error('Error: %s', err);
         });
+      } else {
+        logger.warn('[ProcessIncomming] Unable to find info.json in %s',
+          filePath);
+      }
+    })
+    .then(() => {
+      self.emit('newImages', processedData.newResources);
+    })
+    .catch(function(err) {
+      logger.error('Error: %s', err);
+    });
+  };
+
+  let backup = function(fileBuffer, path) {
+    return new Promise(function(fulfill, reject) {
+      if (config.amazon.backup) {
+        let hash = crypto.createHash('sha256');
+        hash.update(path);
+        s3.upload({
+          Key: hash.digest('hex'),
+          Body: fileBuffer,
+          ContentEncoding: 'base64',
+          Metadata: {
+            'Content-Type': 'image/jpeg'
+          },
+          ACL: 'public-read'
+        }, (err, data) => {
+          if (err) {
+            reject(err);
+          } else {
+            logger.info('Data: %s', data);
+            fulfill(data);
+          }
+        });
+      } else {
+        fulfill();
       }
     });
   };
 
-  let backup = function(fileBuffer, path, enabled, callback) {
-    if (enabled) {
-      s3.upload({
-        Key: path,
-        Body: fileBuffer
-      }, callback);
-    } else {
-      callback();
-    }
+  let getImageDate = function(file, callback) {
+    return new Promise(function(fulfill, reject) {
+      try {
+        console.log('tyope: ', typeof(file))
+        gm(file)
+        .identify(function(err, data) {
+          if (err) {
+            logger.warn('[%s] Unable to read metadata from image %s, Error: ', config.abbir.screenName, file.name, err);
+            reject(err);
+          } else {
+            if (data.hasOwnProperty('Profile-EXIF') && (data['Profile-EXIF'].hasOwnProperty('Date Time Original') || data['Profile-EXIF'].hasOwnProperty('Date Time'))) {
+              let date = data['Profile-EXIF']['Date Time Original'] || data['Profile-EXIF']['Date Time'];
+              let tmp = date.split(' ');
+              tmp[0] = tmp[0].split(':').join('-');
+              date = moment.tz(tmp[0] + 'T' + tmp[1], 'Europe/Stockholm');
+              fulfill(date);
+            } else {
+              reject(new Error('No EXIF info found'));
+            }
+          }
+        });
+      } catch (err) {
+        reject(err);
+      }
+    });
   };
 
-  let getImageDate = function(file, callback) {
-    let date;
-    try {
-      gm(file)
-      .identify(function(err, data) {
+  function readFile(filename) {
+    return new Promise(function(fulfill, reject) {
+      fs.readFile(filename, function(err, res) {
+        logger.debug('[ProcessIncomming] Read file %s', filename);
         if (err) {
-          logger.warn('[%s] Unable to read metadata from image %s, Error: ', config.abbir.screenName, file.name, err);
-          callback(err);
-          return;
+          reject(err);
         } else {
-          if (data.hasOwnProperty('Profile-EXIF') && (data['Profile-EXIF'].hasOwnProperty('Date Time Original') || data['Profile-EXIF'].hasOwnProperty('Date Time'))) {
-            date = data['Profile-EXIF']['Date Time Original'] || data['Profile-EXIF']['Date Time'];
-            let tmp = date.split(' ');
-            tmp[0] = tmp[0].split(':').join('-');
-            date = moment.tz(tmp[0] + 'T' + tmp[1], 'Europe/Stockholm');
-            callback(null, date);
-          } else {
-            callback(new Error('No EXIF info found'));
-            return;
-          }
+          fulfill(res);
         }
       });
-    } catch (err) {
-      callback(err);
-      return;
-    }
-  };
+    });
+  }
 
-  function readFile(filename, enc) {
+  function readdir(path) {
     return new Promise(function(fulfill, reject) {
-      fs.readFile(filename, enc, function(err, res) {
+      fs.readdir(path, function(err, res) {
+        logger.debug('[ProcessIncomming] Read dir %s', path);
         if (err) {
+          logger.error('[ProcessIncomming] Could not list the directory %s, error: ',
+            path,
+            err);
           reject(err);
         } else {
           fulfill(res);
@@ -229,7 +252,8 @@ function ProcessIncomming() {
 
   function readJSON(filename) {
     return new Promise(function(fulfill, reject) {
-      readFile(filename, 'utf8').done(function(res) {
+      readFile(filename, 'utf8').then(function(res) {
+        logger.debug('[ProcessIncomming] Read jsonfile %s', filename);
         try {
           fulfill(JSON.parse(res));
         } catch (ex) {
